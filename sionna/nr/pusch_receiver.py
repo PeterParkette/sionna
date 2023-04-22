@@ -278,7 +278,4 @@ class PUSCHReceiver(Layer):
         # TB Decoding
         b_hat, tb_crc_status = self._tb_decoder(llr)
 
-        if self._return_tb_crc_status:
-            return b_hat, tb_crc_status
-        else:
-            return b_hat
+        return (b_hat, tb_crc_status) if self._return_tb_crc_status else b_hat

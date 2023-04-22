@@ -57,8 +57,7 @@ def rotation_matrix(angles):
     r_33 = cos_b*cos_c
     r_3 = tf.stack([r_31, r_32, r_33], axis=-1)
 
-    rot_mat = tf.stack([r_1, r_2, r_3], axis=-2)
-    return rot_mat
+    return tf.stack([r_1, r_2, r_3], axis=-2)
 
 def rotate(p, angles):
     r"""
@@ -88,11 +87,7 @@ def rotate(p, angles):
     rot_mat = rotation_matrix(angles)
     rot_mat = expand_to_rank(rot_mat, tf.rank(p)+1, 0)
 
-    # Rotation around ``center``
-    # [..., 3]
-    rot_p = tf.linalg.matvec(rot_mat, p)
-
-    return rot_p
+    return tf.linalg.matvec(rot_mat, p)
 
 def theta_phi_from_unit_vec(v):
     r"""
@@ -140,10 +135,14 @@ def r_hat(theta, phi):
     rho_hat : ``phi.shape`` + [3], tf.float
         Vector :math:`\hat{\mathbf{r}}(\theta, \phi)`  on unit sphere
     """
-    rho_hat = tf.stack([tf.sin(theta)*tf.cos(phi),
-                        tf.sin(theta)*tf.sin(phi),
-                        tf.cos(theta)], axis=-1)
-    return rho_hat
+    return tf.stack(
+        [
+            tf.sin(theta) * tf.cos(phi),
+            tf.sin(theta) * tf.sin(phi),
+            tf.cos(theta),
+        ],
+        axis=-1,
+    )
 
 def theta_hat(theta, phi):
     r"""
@@ -215,10 +214,10 @@ def cross(u, v):
     v_y = v[...,1]
     v_z = v[...,2]
 
-    w = tf.stack([u_y*v_z - u_z*v_y,
-                  u_z*v_x - u_x*v_z,
-                  u_x*v_y - u_y*v_x], axis=-1)
-    return w
+    return tf.stack(
+        [u_y * v_z - u_z * v_y, u_z * v_x - u_x * v_z, u_x * v_y - u_y * v_x],
+        axis=-1,
+    )
 
 def dot(u, v, keepdim=False):
     r"""

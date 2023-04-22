@@ -93,10 +93,10 @@ def qam(num_bits_per_symbol, normalize=True):
 
     # Build constellation by iterating through all points
     c = np.zeros([2**num_bits_per_symbol], dtype=np.complex64)
-    for i in range(0, 2**num_bits_per_symbol):
+    for i in range(2**num_bits_per_symbol):
         b = np.array(list(np.binary_repr(i,num_bits_per_symbol)),
                      dtype=np.int16)
-        c[i] = pam_gray(b[0::2]) + 1j*pam_gray(b[1::2]) # PAM in each dimension
+        c[i] = pam_gray(b[::2]) + 1j*pam_gray(b[1::2])
 
     if normalize: # Normalize to unit energy
         n = int(num_bits_per_symbol/2)
@@ -156,7 +156,7 @@ def pam(num_bits_per_symbol, normalize=True):
 
     # Build constellation by iterating through all points
     c = np.zeros([2**num_bits_per_symbol], dtype=np.float32)
-    for i in range(0, 2**num_bits_per_symbol):
+    for i in range(2**num_bits_per_symbol):
         b = np.array(list(np.binary_repr(i,num_bits_per_symbol)),
                      dtype=np.int16)
         c[i] = pam_gray(b)
@@ -232,11 +232,11 @@ class Constellation(Layer):
                  **kwargs):
         super().__init__(**kwargs)
         assert dtype in [tf.complex64, tf.complex128],\
-            "dtype must be tf.complex64 or tf.complex128"
+                "dtype must be tf.complex64 or tf.complex128"
         self._dtype = dtype
 
         assert constellation_type in ("qam", "pam", "custom"),\
-            "Wrong constellation type"
+                "Wrong constellation type"
         self._constellation_type = constellation_type
 
         assert isinstance(normalize, bool), "normalize must be boolean"
@@ -250,15 +250,15 @@ class Constellation(Layer):
 
         # allow float inputs that represent int
         assert isinstance(num_bits_per_symbol, (float,int)),\
-            "num_bits_per_symbol must be integer"
+                "num_bits_per_symbol must be integer"
         assert (num_bits_per_symbol%1==0),\
-            "num_bits_per_symbol must be integer"
+                "num_bits_per_symbol must be integer"
         num_bits_per_symbol = int(num_bits_per_symbol)
 
         if self._constellation_type=="qam":
             assert num_bits_per_symbol%2 == 0 and num_bits_per_symbol>0,\
-                "num_bits_per_symbol must be a multiple of 2"
-            self._num_bits_per_symbol = int(num_bits_per_symbol)
+                    "num_bits_per_symbol must be a multiple of 2"
+            self._num_bits_per_symbol = num_bits_per_symbol
 
             assert initial_value is None, "QAM must not have an initial value"
             points = qam(self._num_bits_per_symbol, normalize=self.normalize)
@@ -266,8 +266,8 @@ class Constellation(Layer):
 
         if self._constellation_type=="pam":
             assert num_bits_per_symbol>0,\
-                "num_bits_per_symbol must be integer"
-            self._num_bits_per_symbol = int(num_bits_per_symbol)
+                    "num_bits_per_symbol must be integer"
+            self._num_bits_per_symbol = num_bits_per_symbol
 
             assert initial_value is None, "PAM must not have an initial value"
             points = pam(self._num_bits_per_symbol, normalize=self.normalize)
@@ -275,8 +275,8 @@ class Constellation(Layer):
 
         if self._constellation_type=="custom":
             assert num_bits_per_symbol>0,\
-                "num_bits_per_symbol must be integer"
-            self._num_bits_per_symbol = int(num_bits_per_symbol)
+                    "num_bits_per_symbol must be integer"
+            self._num_bits_per_symbol = num_bits_per_symbol
 
             # Randomly initialize points if no initial_value is provided
             if initial_value is None:
@@ -288,7 +288,7 @@ class Constellation(Layer):
             else:
                 assert tf.rank(initial_value).numpy() == 1
                 assert tf.shape(initial_value)[0] == 2**num_bits_per_symbol,\
-                    "initial_value must have shape [2**num_bits_per_symbol]"
+                        "initial_value must have shape [2**num_bits_per_symbol]"
                 points = tf.cast(initial_value, self._dtype)
         self._points = points
 
@@ -305,10 +305,7 @@ class Constellation(Layer):
                                     dtype=tf.as_dtype(self._dtype).real_dtype)
 
     # pylint: disable=no-self-argument
-    def create_or_check_constellation(  constellation_type=None,
-                                        num_bits_per_symbol=None,
-                                        constellation=None,
-                                        dtype=tf.complex64):
+    def create_or_check_constellation(self, num_bits_per_symbol=None, constellation=None, dtype=tf.complex64):
         # pylint: disable=line-too-long
         r"""Static method for conviently creating a constellation object or checking that an existing one
         is consistent with requested settings.
@@ -340,23 +337,18 @@ class Constellation(Layer):
         """
         constellation_object = None
         if constellation is not None:
-            assert constellation_type in [None, "custom"], \
-                """`constellation_type` must be "custom"."""
+            assert self in [None, "custom"], """`constellation_type` must be "custom"."""
             assert num_bits_per_symbol in \
-                     [None, constellation.num_bits_per_symbol], \
-                """`Wrong value of `num_bits_per_symbol.`"""
+                         [None, constellation.num_bits_per_symbol], \
+                    """`Wrong value of `num_bits_per_symbol.`"""
             assert constellation.dtype==dtype, \
-                "Constellation has wrong dtype."
-            constellation_object = constellation
+                    "Constellation has wrong dtype."
+            return constellation
         else:
-            assert constellation_type in ["qam", "pam"], \
-                "Wrong constellation type."
+            assert self in ["qam", "pam"], "Wrong constellation type."
             assert num_bits_per_symbol is not None, \
-                "`num_bits_per_symbol` must be provided."
-            constellation_object = Constellation(   constellation_type,
-                                                    num_bits_per_symbol,
-                                                    dtype=dtype)
-        return constellation_object
+                    "`num_bits_per_symbol` must be provided."
+            return Constellation(self, num_bits_per_symbol, dtype=dtype)
 
     def call(self, inputs): #pylint: disable=unused-argument
         x = self._points
@@ -522,7 +514,7 @@ class Mapper(Layer):
 
         # Reshape inputs to the desired format
         new_shape = [-1] + inputs.shape[1:-1].as_list() + \
-           [int(inputs.shape[-1] / self.constellation.num_bits_per_symbol),
+               [int(inputs.shape[-1] / self.constellation.num_bits_per_symbol),
             self.constellation.num_bits_per_symbol]
         inputs_reshaped = tf.cast(tf.reshape(inputs, new_shape), tf.int32)
 
@@ -532,10 +524,7 @@ class Mapper(Layer):
         # Map integers to constellation symbols
         x = tf.gather(self.constellation.points, int_rep, axis=0)
 
-        if self._return_indices:
-            return x, int_rep
-        else:
-            return x
+        return (x, int_rep) if self._return_indices else x
 
 class SymbolLogits2LLRs(Layer):
     # pylint: disable=line-too-long
@@ -651,13 +640,13 @@ class SymbolLogits2LLRs(Layer):
 
         # Array composed of binary representations of all symbols indices
         a = np.zeros([num_points, num_bits_per_symbol])
-        for i in range(0, num_points):
+        for i in range(num_points):
             a[i,:] = np.array(list(np.binary_repr(i, num_bits_per_symbol)),
                               dtype=np.int16)
 
         # Compute symbol indices for which the bits are 0 or 1
-        c0 = np.zeros([int(num_points/2), num_bits_per_symbol])
-        c1 = np.zeros([int(num_points/2), num_bits_per_symbol])
+        c0 = np.zeros([num_points // 2, num_bits_per_symbol])
+        c1 = np.zeros([num_points // 2, num_bits_per_symbol])
         for i in range(num_bits_per_symbol-1,-1,-1):
             c0[:,i] = np.where(a[:,i]==0)[0]
             c1[:,i] = np.where(a[:,i]==1)[0]
@@ -671,10 +660,7 @@ class SymbolLogits2LLRs(Layer):
             self._a = tf.constant(a, dtype=dtype)
 
         # Determine the reduce function for LLR computation
-        if self._method == "app":
-            self._reduce = tf.reduce_logsumexp
-        else:
-            self._reduce = tf.reduce_max
+        self._reduce = tf.reduce_logsumexp if self._method == "app" else tf.reduce_max
 
     @property
     def num_bits_per_symbol(self):
@@ -718,14 +704,11 @@ class SymbolLogits2LLRs(Layer):
         # shape [..., n, num_bits_per_symbol]
         if self._with_prior:
             llr = self._reduce(exp_ps1 + exp1, axis=-2)\
-                    - self._reduce(exp_ps0 + exp0, axis=-2)
+                        - self._reduce(exp_ps0 + exp0, axis=-2)
         else:
             llr = self._reduce(exp1, axis=-2) - self._reduce(exp0, axis=-2)
 
-        if self._hard_out:
-            return sn.utils.hard_decisions(llr)
-        else:
-            return llr
+        return sn.utils.hard_decisions(llr) if self._hard_out else llr
 
 class SymbolLogits2LLRsWithPrior(SymbolLogits2LLRs):
     # pylint: disable=line-too-long
@@ -1013,10 +996,8 @@ class Demapper(Layer):
         # Reshape LLRs to [...,n*num_bits_per_symbol]
         out_shape = tf.concat([tf.shape(y)[:-1],
                                [y.shape[-1] * \
-                                self.constellation.num_bits_per_symbol]], 0)
-        llr_reshaped = tf.reshape(llr, out_shape)
-
-        return llr_reshaped
+                                    self.constellation.num_bits_per_symbol]], 0)
+        return tf.reshape(llr, out_shape)
 
 class DemapperWithPrior(Demapper):
     # pylint: disable=line-too-long
@@ -1420,7 +1401,7 @@ class LLRs2SymbolLogits(Layer):
 
         # Array composed of binary representations of all symbols indices
         a = np.zeros([num_points, num_bits_per_symbol])
-        for i in range(0, num_points):
+        for i in range(num_points):
             a[i,:] = np.array(list(np.binary_repr(i, num_bits_per_symbol)),
                               dtype=np.int16)
 
@@ -1563,10 +1544,10 @@ class QAM2PAM:
         base = np.array(base)
         pam1_ind = np.zeros([2**num_bits_per_symbol], dtype=np.int32)
         pam2_ind = np.zeros([2**num_bits_per_symbol], dtype=np.int32)
-        for i in range(0, 2**num_bits_per_symbol):
+        for i in range(2**num_bits_per_symbol):
             b = np.array(list(np.binary_repr(i,num_bits_per_symbol)),
                          dtype=np.int32)
-            pam1_ind[i] = np.sum(b[0::2]*base)
+            pam1_ind[i] = np.sum(b[::2] * base)
             pam2_ind[i] = np.sum(b[1::2]*base)
         self._pam1_ind = tf.constant(pam1_ind, dtype=tf.int32)
         self._pam2_ind = tf.constant(pam2_ind, dtype=tf.int32)
@@ -1614,14 +1595,14 @@ class PAM2QAM:
 
         # Create an array of QAM symbol indices, index by two PAM indices
         ind = np.zeros([num_pam_symbols, num_pam_symbols], np.int32)
-        for i in range(0, num_pam_symbols):
-            for j in range(0, num_pam_symbols):
+        for i in range(num_pam_symbols):
+            for j in range(num_pam_symbols):
                 b1 = np.array(list(np.binary_repr(i,num_bits_per_symbol//2)),
                               dtype=np.int16)
                 b2 = np.array(list(np.binary_repr(j,num_bits_per_symbol//2)),
                               dtype=np.int16)
                 b = np.zeros([num_bits_per_symbol], np.int32)
-                b[0::2] = b1
+                b[::2] = b1
                 b[1::2] = b2
                 ind[i, j] = np.sum(b*base)
         self._qam_ind = tf.constant(ind, dtype=tf.int32)
@@ -1683,7 +1664,7 @@ class SymbolInds2Bits(Layer):
         super().__init__(dtype=dtype, **kwargs)
         num_symbols = 2**num_bits_per_symbol
         b = np.zeros([num_symbols, num_bits_per_symbol])
-        for i in range(0, num_symbols):
+        for i in range(num_symbols):
             b[i,:] = np.array(list(np.binary_repr(i, num_bits_per_symbol)),
                               dtype=np.int16)
         self._bit_labels = tf.constant(b, self.dtype)

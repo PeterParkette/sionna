@@ -481,5 +481,4 @@ class InteractiveDisplay:
         notebook environment.
         """
 
-        html = embed_snippet(self._renderer, requirejs=True)
-        return html
+        return embed_snippet(self._renderer, requirejs=True)

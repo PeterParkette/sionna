@@ -59,8 +59,7 @@ def polynomial_selector(rate, constraint_length):
             1/2: rate_half_dict,
             1/3: rate_third_dict
     }
-    gen_poly = gen_poly_dict[rate][constraint_length]
-    return gen_poly
+    return gen_poly_dict[rate][constraint_length]
 
 
 class Trellis(object):
@@ -141,8 +140,7 @@ class Trellis(object):
         """
         assert len(v1) == len(v2)
         op_int = sum(x*int(v2[idx]) for idx,x in enumerate(v1))
-        op = int2bin(op_int, 1)[0]
-        return op
+        return int2bin(op_int, 1)[0]
 
     def _generate_transitions(self):
         """Utility method that generates state transitions for different

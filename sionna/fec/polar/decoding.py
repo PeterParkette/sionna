@@ -196,16 +196,15 @@ class PolarSCDecoder(Layer):
 
         # branch if leaf is not reached yet
         if n>1:
-            if self._use_fast_sc:
-                if np.sum(frozen_ind)==n:
-                    #print("rate-0 detected! Length: ", n)
-                    u_hat = tf.zeros_like(llr_ch)
-                    return u_hat, u_hat
+            if self._use_fast_sc and np.sum(frozen_ind) == n:
+                #print("rate-0 detected! Length: ", n)
+                u_hat = tf.zeros_like(llr_ch)
+                return u_hat, u_hat
 
-            llr_ch1 = llr_ch[...,0:int(n/2)]
-            llr_ch2 = llr_ch[...,int(n/2):]
-            frozen_ind1 = frozen_ind[0:int(n/2)]
-            frozen_ind2 = frozen_ind[int(n/2):]
+            llr_ch1 = llr_ch[..., 0:n // 2]
+            llr_ch2 = llr_ch[..., n // 2:]
+            frozen_ind1 = frozen_ind[:n // 2]
+            frozen_ind2 = frozen_ind[n // 2:]
 
             # upper path
             x_llr1_in = self._cn_op_tf(llr_ch1, llr_ch2)
@@ -235,14 +234,13 @@ class PolarSCDecoder(Layer):
 
             if frozen_ind==1: # position is frozen
                 u_hat = tf.expand_dims(tf.zeros_like(llr_ch[:,0]), axis=-1)
-                u_hat_up = u_hat
             else: # otherwise hard decide
                 u_hat = 0.5 * (1. - tf.sign(llr_ch))
                 #remove "exact 0 llrs" leading to u_hat=0.5
                 u_hat = tf.where(tf.equal(u_hat, 0.5),
                                  tf.ones_like(u_hat),
                                  u_hat)
-                u_hat_up = u_hat
+            u_hat_up = u_hat
         return u_hat, u_hat_up
 
     #########################
@@ -985,8 +983,6 @@ class PolarSCLDecoder(Layer):
         """
         # current sub-code length and stage index (= tree depth)
         n = len(cw_ind)
-        stage_ind = int(np.log2(n))
-
         # recursively branch through decoding tree
         if n>1:
             # prune tree if rate-0 subcode is detected
@@ -1007,8 +1003,10 @@ class PolarSCLDecoder(Layer):
                     return msg_uhat, msg_llr, msg_pm
 
             # split index into left and right part
-            cw_ind_left = cw_ind[0:int(n/2)]
-            cw_ind_right = cw_ind[int(n/2):]
+            cw_ind_left = cw_ind[:n // 2]
+            cw_ind_right = cw_ind[n // 2:]
+
+            stage_ind = int(np.log2(n))
 
             # ----- left branch -----
             msg_llr = self. _update_left_branch(msg_llr,
@@ -1040,7 +1038,6 @@ class PolarSCLDecoder(Layer):
                                              cw_ind_left,
                                              cw_ind_right)
 
-        # if leaf is reached perform basic decoding op (=decision)
         else:
             # update bit value at current position
             msg_uhat = self._update_single_bit(cw_ind, msg_uhat)
@@ -1236,8 +1233,6 @@ class PolarSCLDecoder(Layer):
         tree depth while maintaining the same output.
         """
         n = len(cw_ind)
-        stage_ind = int(np.log2(n))
-
         # recursively branch through decoding tree
         if n>1:
             # prune tree if rate-0 subcode or rep-code is detected
@@ -1251,8 +1246,10 @@ class PolarSCLDecoder(Layer):
                     # rep code detected
                     self._update_rep_code_np(cw_ind)
                     return
-            cw_ind_left = cw_ind[0:int(n/2)]
-            cw_ind_right = cw_ind[int(n/2):]
+            cw_ind_left = cw_ind[:n // 2]
+            cw_ind_right = cw_ind[n // 2:]
+
+            stage_ind = int(np.log2(n))
 
             # ----- left branch -----
             llr_left = self.msg_llr[:, :, stage_ind, cw_ind_left]
@@ -1458,17 +1455,16 @@ class PolarSCLDecoder(Layer):
             # note: return shape is only 1 in 3. dim (to avoid copy overhead)
             msg_uhat = tf.reshape(msg_uhat, [-1, 2*self._list_size, 1, self._n])
             msg_pm = tf.reshape(msg_pm, [-1, 2*self._list_size])
+        elif self._cpu_only:
+            msg_uhat, msg_pm = tf.py_function(func=self._decode_np_batch,
+                                              inp=[llr_ch],
+                                              Tout=[tf.float32, tf.float32])
+            # restore shape information
+            msg_uhat = tf.reshape(msg_uhat,
+                        [-1, 2*self._list_size, self._n_stages+1, self._n])
+            msg_pm = tf.reshape(msg_pm, [-1, 2*self._list_size])
         else:
-            if self._cpu_only:
-                msg_uhat, msg_pm = tf.py_function(func=self._decode_np_batch,
-                                                  inp=[llr_ch],
-                                                  Tout=[tf.float32, tf.float32])
-                # restore shape information
-                msg_uhat = tf.reshape(msg_uhat,
-                            [-1, 2*self._list_size, self._n_stages+1, self._n])
-                msg_pm = tf.reshape(msg_pm, [-1, 2*self._list_size])
-            else:
-                msg_uhat, msg_pm = self._decode_tf(llr_ch)
+            msg_uhat, msg_pm = self._decode_tf(llr_ch)
 
         # check crc (and remove CRC parity bits)
         if self._use_crc:
@@ -1807,10 +1803,7 @@ class PolarBPDecoder(Layer):
                           self._info_pos,
                           axis=1)
         # if active, hard-decide output bits
-        if self._hard_out:
-            u_hat = tf.where(u_hat>0, 0., 1.)
-        else: # re-transform soft output to logits (instead of llrs)
-            u_hat = -1. * u_hat
+        u_hat = tf.where(u_hat>0, 0., 1.) if self._hard_out else -1. * u_hat
         return u_hat
 
     #########################
@@ -2140,24 +2133,23 @@ class Polar5GDecoder(Layer):
             # Repetition coding
             # Add the last n_rep positions to the first llr positions
             n_rep = self._n_target - self._n_polar
-            llr_1 = llr_deint[:,:n_rep]
             llr_2 = llr_deint[:,n_rep:self._n_polar]
             llr_3 = llr_deint[:,self._n_polar:]
+            llr_1 = llr_deint[:,:n_rep]
             llr_dematched = tf.concat([llr_1+llr_3, llr_2], 1)
+        elif self._k_polar/self._n_target <= 7/16:
+            # Puncturing
+            # Append n_polar - n_target "zero" llrs to first positions
+            llr_zero = tf.zeros([tf.shape(llr_deint)[0],
+                                 self._n_polar-self._n_target])
+            llr_dematched = tf.concat([llr_zero, llr_deint], 1)
         else:
-            if self._k_polar/self._n_target <= 7/16:
-                # Puncturing
-                # Append n_polar - n_target "zero" llrs to first positions
-                llr_zero = tf.zeros([tf.shape(llr_deint)[0],
-                                     self._n_polar-self._n_target])
-                llr_dematched = tf.concat([llr_zero, llr_deint], 1)
-            else:
-                # Shortening
-                # Append n_polar - n_target "-infinity" llrs to last positions
-                # Remark: we still operate with logits here, thus the neg. sign
-                llr_infty = -self._llr_max * tf.ones([tf.shape(llr_deint)[0],
-                                                self._n_polar-self._n_target])
-                llr_dematched = tf.concat([llr_deint, llr_infty], 1)
+            # Shortening
+            # Append n_polar - n_target "-infinity" llrs to last positions
+            # Remark: we still operate with logits here, thus the neg. sign
+            llr_infty = -self._llr_max * tf.ones([tf.shape(llr_deint)[0],
+                                            self._n_polar-self._n_target])
+            llr_dematched = tf.concat([llr_deint, llr_infty], 1)
 
         # 3.) Remove subblock interleaving
         llr_dec = tf.gather(llr_dematched, self.ind_sub_int_inv, axis=1)

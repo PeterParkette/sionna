@@ -233,12 +233,10 @@ class SolverBase:
         # The following hack takes care of this corner case
         dr.eval(mi_tensor)
         dr.sync_thread()
-        if dr.shape(mi_tensor)[-1] == 1:
-            mi_tensor = dr.repeat(mi_tensor, 2)
-            tf_tensor = tf.cast(mi_tensor.tf(), dtype)[:1]
-        else:
-            tf_tensor = tf.cast(mi_tensor.tf(), dtype)
-        return tf_tensor
+        if dr.shape(mi_tensor)[-1] != 1:
+            return tf.cast(mi_tensor.tf(), dtype)
+        mi_tensor = dr.repeat(mi_tensor, 2)
+        return tf.cast(mi_tensor.tf(), dtype)[:1]
 
     def _gen_orthogonal_vector(self, k):
         """

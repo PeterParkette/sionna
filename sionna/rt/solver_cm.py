@@ -135,13 +135,17 @@ class SolverCoverageMap(SolverBase):
                                       max_depth,
                                       num_samples, seed)
 
-        cm = self._rays_2_coverage_map(
-                            cm_center, cm_orientation, cm_size, cm_cell_size,
-                            rx_orientation,
-                            combining_vec, precoding_vec,
-                            *rays,
-                            etas)
-        return cm
+        return self._rays_2_coverage_map(
+            cm_center,
+            cm_orientation,
+            cm_size,
+            cm_cell_size,
+            rx_orientation,
+            combining_vec,
+            precoding_vec,
+            *rays,
+            etas
+        )
 
     ##################################################################
     # Internal methods
@@ -210,11 +214,7 @@ class SolverCoverageMap(SolverBase):
         """
         mask_t = dr.mask_t(self._mi_scalar_t)
 
-        # Transmitters positions
-        # [num_tx, 3]
-        tx_position = []
-        for tx in self._scene.transmitters.values():
-            tx_position.append(tx.position)
+        tx_position = [tx.position for tx in self._scene.transmitters.values()]
         tx_position = tf.stack(tx_position, axis=0)
 
         # Ensure that sample count can be distributed over the emitters
@@ -333,7 +333,7 @@ class SolverCoverageMap(SolverBase):
             ray = si_scene.spawn_ray(si_scene.to_world(
                 mi.reflect(si_scene.wi)))
 
-        if (max_depth == 0) or (len(primitives) == 0):
+        if max_depth == 0 or not primitives:
             # If only LoS is requested or if no interaction was found
             # (empty scene), then the only candidate is the LoS
             primitives = tf.fill([0, num_tx, samples_per_tx], -1)
@@ -351,7 +351,7 @@ class SolverCoverageMap(SolverBase):
             # was found for a path
             max_depth = primitives.shape[0]
 
-        if len(hit) == 0:
+        if not hit:
             hit = tf.fill([0, num_tx, samples_per_tx], -1)
             hit_point = tf.fill([0, num_tx, samples_per_tx, 3], 0.0)
         else:
@@ -719,14 +719,7 @@ class SolverCoverageMap(SolverBase):
         # [num_tx, samples_per_tx]
         h = dot(combining_vec, h)
 
-        ######################################################
-        # Only the squared amplitude is returned
-        ######################################################
-
-        # Compute and return the amplitudes
-        # [num_tx, samples_per_tx]
-        a = tf.square(tf.abs(h))
-        return a
+        return tf.square(tf.abs(h))
 
     def _rays_2_coverage_map(self,
                              cm_center, cm_orientation, cm_size, cm_cell_size,
@@ -801,11 +794,7 @@ class SolverCoverageMap(SolverBase):
             The coverage maps
         """
 
-        # Transmitters positions and orientations
-        # [num_tx, 3]
-        tx_position = []
-        for tx in self._scene.transmitters.values():
-            tx_position.append(tx.position)
+        tx_position = [tx.position for tx in self._scene.transmitters.values()]
         tx_position = tf.stack(tx_position, axis=0)
 
         # Maximum depth

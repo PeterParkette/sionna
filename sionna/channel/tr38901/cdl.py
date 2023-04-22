@@ -602,11 +602,7 @@ class CDL(ChannelModel):
         # [num clusters, 1]
         angles = tf.expand_dims(angles, axis=1)
 
-        # Generate rays following 7.7-0a
-        # [num clusters, num rays = 20]
-        ray_angles = angles + c*basis_vector
-
-        return ray_angles
+        return angles + c*basis_vector
 
     def _reshape_for_cir_computation(self, array):
         r"""
@@ -656,9 +652,7 @@ class CDL(ChannelModel):
         # normal distribution
         random_numbers = tf.random.normal(tf.shape(angles))
         shuffled_indices = tf.argsort(random_numbers)
-        # Shuffling the angles
-        shuffled_angles = tf.gather(angles,shuffled_indices, batch_dims=4)
-        return shuffled_angles
+        return tf.gather(angles,shuffled_indices, batch_dims=4)
 
     def _random_coupling(self, aoa, aod, zoa, zod):
         # pylint: disable=line-too-long

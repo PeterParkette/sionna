@@ -104,46 +104,49 @@ class Scene:
 
         # If a filename is provided, loads the scene from it.
         # The previous scene is overwritten.
-        if env_filename:
+        if not env_filename:
+            return
+        if dtype not in (tf.complex64, tf.complex128):
+            msg = "`dtype` must be tf.complex64 or tf.complex64`"
+            raise ValueError(msg)
+        self._dtype = dtype
+        self._rdtype = dtype.real_dtype
 
-            if dtype not in (tf.complex64, tf.complex128):
-                msg = "`dtype` must be tf.complex64 or tf.complex64`"
-                raise ValueError(msg)
-            self._dtype = dtype
-            self._rdtype = dtype.real_dtype
+        # Clear it all
+        self._clear()
 
-            # Clear it all
-            self._clear()
+        # Set the frequency to the default value
+        self.frequency = Scene.DEFAULT_FREQUENCY
 
-            # Set the frequency to the default value
-            self.frequency = Scene.DEFAULT_FREQUENCY
-
-            # Populate with ITU materials
-            instantiate_itu_materials(self._dtype)
+        # Populate with ITU materials
+        instantiate_itu_materials(self._dtype)
 
             # Load the scene
             # Keep track of the Mitsuba scene
-            if env_filename == "__empty__":
-                # Set an empty scene
-                self._scene = mi.load_dict({"type": "scene",
-                                            "integrator": {
-                                                "type": "path",
-                                            }})
-            else:
-                self._scene = mi.load_file(env_filename)
+        self._scene = (
+            mi.load_dict(
+                {
+                    "type": "scene",
+                    "integrator": {
+                        "type": "path",
+                    },
+                }
+            )
+            if env_filename == "__empty__"
+            else mi.load_file(env_filename)
+        )
+        # Instantiate the solver
+        self._solver = Solver(self, dtype=dtype)
 
-            # Instantiate the solver
-            self._solver = Solver(self, dtype=dtype)
+        # Solver for coverage map
+        self._solver_cm = SolverCoverageMap(self, solver=self._solver,
+                                            dtype=dtype)
 
-            # Solver for coverage map
-            self._solver_cm = SolverCoverageMap(self, solver=self._solver,
-                                                dtype=dtype)
+        # Load the cameras
+        self._load_cameras()
 
-            # Load the cameras
-            self._load_cameras()
-
-            # Load the scene objects
-            self._load_scene_objects()
+        # Load the scene objects
+        self._load_scene_objects()
 
     @property
     def cameras(self):
@@ -266,18 +269,18 @@ class Scene:
         [3], tf.float : Get the size of the sceme, i.e., the size of the
         axis-aligned minimum bounding box for the scene
         """
-        size = tf.cast(self._scene.bbox().max - self._scene.bbox().min,
-                       self._rdtype)
-        return size
+        return tf.cast(
+            self._scene.bbox().max - self._scene.bbox().min, self._rdtype
+        )
 
     @property
     def center(self):
         """
         [3], tf.float : Get the center of the scene
         """
-        size = tf.cast((self._scene.bbox().max + self._scene.bbox().min)*0.5,
-                       self._rdtype)
-        return size
+        return tf.cast(
+            (self._scene.bbox().max + self._scene.bbox().min) * 0.5, self._rdtype
+        )
 
     def get(self, name):
         # pylint: disable=line-too-long
@@ -302,9 +305,7 @@ class Scene:
             return self._radio_materials[name]
         if name in self._scene_objects:
             return self._scene_objects[name]
-        if name in self._cameras:
-            return self._cameras[name]
-        return None
+        return self._cameras[name] if name in self._cameras else None
 
     def add(self, item):
         """
@@ -321,31 +322,30 @@ class Scene:
         if ( (not isinstance(item, OrientedObject))
          and (not isinstance(item, RadioMaterial)) ):
             err_msg = "The input must be a Transmitter, Receiver, Camera, or"\
-                      " RadioMaterial"
+                          " RadioMaterial"
             raise ValueError(err_msg)
 
         name = item.name
         s_item = self.get(name)
         if s_item is not None:
-            if  s_item is not item:
-                # In the case of RadioMaterial, the current item with same
-                # name could just be a placeholder
-                if isinstance(s_item, RadioMaterial)\
-                    and s_item.is_placeholder:
-                    s_item.relative_permittivity = item.relative_permittivity
-                    s_item.conductivity = item.conductivity
-                    s_item.frequency_update_callback =\
-                        item.frequency_update_callback
-                    s_item.trainable = item.trainable
-                    s_item.is_placeholder = False
-                else:
-                    msg = f"Name '{name}' is already used by another item of"\
-                           " the scene"
-                    raise ValueError(msg)
-            else:
+            if s_item is item:
                 # This item was already added.
                 return
 
+            # In the case of RadioMaterial, the current item with same
+            # name could just be a placeholder
+            if isinstance(s_item, RadioMaterial)\
+                    and s_item.is_placeholder:
+                s_item.relative_permittivity = item.relative_permittivity
+                s_item.conductivity = item.conductivity
+                s_item.frequency_update_callback =\
+                        item.frequency_update_callback
+                s_item.trainable = item.trainable
+                s_item.is_placeholder = False
+            else:
+                msg = f"Name '{name}' is already used by another item of"\
+                           " the scene"
+                raise ValueError(msg)
         if isinstance(item, Transmitter):
             self._transmitters[name] = item
             item.scene = self
@@ -871,8 +871,8 @@ class Scene:
               or (cm_size is None)
               or (cm_orientation is None)):
             raise ValueError("If one of `cm_center`, `cm_orientation`,"\
-                             " or `cm_size` is not None, then all of them"\
-                             " must not be None")
+                                 " or `cm_size` is not None, then all of them"\
+                                 " must not be None")
         else:
             cm_center = tf.cast(cm_center, self._rdtype)
             cm_orientation = tf.cast(cm_orientation, self._rdtype)
@@ -903,20 +903,18 @@ class Scene:
             seed = tf.random.uniform(shape=(), maxval=0x7FFFFFFF,
                                      dtype=tf.int32)
 
-        # Compute the coverage map using the solver
-        # [num_sources, num_cells_x, num_cells_y]
-        output = self._solver_cm(max_depth=max_depth,
-                                 rx_orientation=rx_orientation,
-                                 cm_center=cm_center,
-                                 cm_orientation=cm_orientation,
-                                 cm_size=cm_size,
-                                 cm_cell_size=cm_cell_size,
-                                 combining_vec=combining_vec,
-                                 precoding_vec=precoding_vec,
-                                 num_samples=num_samples,
-                                 seed=seed)
-
-        return output
+        return self._solver_cm(
+            max_depth=max_depth,
+            rx_orientation=rx_orientation,
+            cm_center=cm_center,
+            cm_orientation=cm_orientation,
+            cm_size=cm_size,
+            cm_cell_size=cm_cell_size,
+            combining_vec=combining_vec,
+            precoding_vec=precoding_vec,
+            num_samples=num_samples,
+            seed=seed,
+        )
 
     def preview(self, paths=None, show_paths=True, show_devices=True,
                 coverage_map=None, cm_tx=0,
@@ -1411,11 +1409,12 @@ class Scene:
         Returns `True` if ``name`` is used by a scene object, a transmitter,
         or a receiver.
         """
-        used = ((name in self._transmitters)
-             or (name in self._receivers)
-             or (name in self._radio_materials)
-             or (name in self._scene_objects))
-        return used
+        return (
+            (name in self._transmitters)
+            or (name in self._receivers)
+            or (name in self._radio_materials)
+            or (name in self._scene_objects)
+        )
 
 
 def load_scene(filename=None, dtype=tf.complex64):

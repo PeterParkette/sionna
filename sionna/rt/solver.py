@@ -353,8 +353,7 @@ class Solver(SolverBase):
                 d=sampled_d,
             )
 
-            for depth in range(max_depth):
-
+            for _ in range(max_depth):
                 # Intersect ray against the scene to find the next hitted
                 # primitive
                 si = self._mi_scene.ray_intersect(ray, active)
@@ -374,7 +373,7 @@ class Solver(SolverBase):
                 # reflection
                 ray = si.spawn_ray(si.to_world(mi.reflect(si.wi)))
 
-        if (max_depth == 0) or (len(results) == 0):
+        if max_depth == 0 or not results:
             # If only LoS is requested or if no interaction was found
             # (empty scene), then the only candidate is the LoS
             results_tf = tf.fill([0, 1], -1)
@@ -541,8 +540,7 @@ class Solver(SolverBase):
         # Test for obstruction using Mitsuba
         # [batch_size]
         mi_val = self._mi_scene.ray_test(mi_ray)
-        val = self._mi_to_tf_tensor(mi_val, tf.bool)
-        return val
+        return self._mi_to_tf_tensor(mi_val, tf.bool)
 
     def _image_method(self, candidates, sources, targets):
         # pylint: disable=line-too-long
@@ -679,7 +677,7 @@ class Solver(SolverBase):
             # needed.
             # [num_src, num_samples, 1]
             dist = dot(current, normal, keepdim=True)\
-                        - dot(p0, normal, keepdim=True)
+                            - dot(p0, normal, keepdim=True)
             # Coordinates of the mirrored point
             # [num_src, num_samples, xyz : 3]
             mirrored = current - 2. * dist * normal
@@ -928,7 +926,7 @@ class Solver(SolverBase):
         path_indices = tf.cumsum(tf.cast(valid, tf.int32), axis=-1)
         path_indices = tf.gather_nd(path_indices, gather_indices) - 1
         scatter_indices = tf.transpose(gather_indices, [1,0])
-        if not tf.size(scatter_indices) == 0:
+        if tf.size(scatter_indices) != 0:
             scatter_indices = tf.tensor_scatter_nd_update(scatter_indices,
                                 [[2]], [path_indices])
         scatter_indices = tf.transpose(scatter_indices, [1,0])

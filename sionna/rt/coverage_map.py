@@ -95,27 +95,27 @@ class CoverageMap:
 
         if (tf.rank(orientation) != 1) or (tf.shape(orientation)[0] != 3):
             msg = "`orientation` must be shaped as [a,b,c]"\
-                  " (rank=1 and shape=[3])"
+                      " (rank=1 and shape=[3])"
             raise ValueError(msg)
 
         if (tf.rank(size) != 1) or (tf.shape(size)[0] != 2):
             msg = "`size` must be shaped as [w,h]"\
-                  " (rank=1 and shape=[2])"
+                      " (rank=1 and shape=[2])"
             raise ValueError(msg)
 
         if (tf.rank(cell_size) != 1) or (tf.shape(cell_size)[0] != 2):
             msg = "`cell_size` must be shaped as [w,h]"\
-                  " (rank=1 and shape=[2])"
+                      " (rank=1 and shape=[2])"
             raise ValueError(msg)
 
         num_cells_x = tf.cast(tf.math.ceil(size[0]/cell_size[0]), tf.int32)
         num_cells_y = tf.cast(tf.math.ceil(size[1]/cell_size[1]), tf.int32)
 
         if (tf.rank(value) != 3)\
-            or (tf.shape(value)[1] != num_cells_y)\
-            or (tf.shape(value)[2] != num_cells_x):
+                or (tf.shape(value)[1] != num_cells_y)\
+                or (tf.shape(value)[2] != num_cells_x):
             msg = "`value` must have shape"\
-                  " [num_tx, num_cells_y, num_cells_x]"
+                      " [num_tx, num_cells_y, num_cells_x]"
             raise ValueError(msg)
 
         self._center = tf.cast(center, self._rdtype)
@@ -124,11 +124,9 @@ class CoverageMap:
         self._cell_size = tf.cast(cell_size, self._rdtype)
         self._value = tf.cast(value, self._rdtype)
         self._transmitters = scene.transmitters
-        # Dict mapping names to index for transmitters
-        self._tx_name_2_ind = {}
-        for tx_ind, tx_name in enumerate(self._transmitters):
-            self._tx_name_2_ind[tx_name] = tx_ind
-
+        self._tx_name_2_ind = {
+            tx_name: tx_ind for tx_ind, tx_name in enumerate(self._transmitters)
+        }
         ###############################################################
         # Position of the center of the cells in the world
         # coordinate system
@@ -404,16 +402,15 @@ class CoverageMap:
                 raise ValueError("Invalid transmitter index")
             tx_pos = list(self._transmitters.values())[tx].position
         elif isinstance(tx, str):
-            if tx in self._tx_name_2_ind:
-                tx_pos = self._transmitters[tx].position
-                tx = self._tx_name_2_ind[tx]
-            else:
+            if tx not in self._tx_name_2_ind:
                 raise ValueError(f"Unknown transmitter with name '{tx}'")
+            tx_pos = self._transmitters[tx].position
+            tx = self._tx_name_2_ind[tx]
         else:
             raise ValueError("Invalid type for `tx`: Must be a string or int")
 
         # allow float values for batch_size
-        if not isinstance(batch_size, (int, float)) or not batch_size%1==0:
+        if not isinstance(batch_size, (int, float)) or batch_size % 1 != 0:
             raise ValueError("batch_size must be int.")
 
         if min_gain_db is None:

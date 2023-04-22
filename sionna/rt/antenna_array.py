@@ -96,7 +96,7 @@ class AntennaArray():
     @positions.setter
     def positions(self, positions):
         positions = tf.cast(positions, self._rdtype)
-        if not (tf.rank(positions) == 2 and positions.shape[1] == 3):
+        if tf.rank(positions) != 2 or positions.shape[1] != 3:
             msg = "Each element of ``positions`` must have length three"
             raise ValueError(msg)
         if not hasattr(self, "_positions"):
@@ -137,9 +137,7 @@ class AntennaArray():
         : [array_size, 3]
             Rotated positions
         """
-        # [array_size, 3]
-        rot_p = rotate(self.positions, orientation)
-        return rot_p
+        return rotate(self.positions, orientation)
 
 class PlanarArray(AntennaArray):
     # pylint: disable=line-too-long

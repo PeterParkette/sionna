@@ -57,7 +57,7 @@ def generate_prng_seq(length, c_init):
 
     # init x1 and x2
     x1[0] = 1
-    x2[0:n_seq] = c_init
+    x2[:n_seq] = c_init
 
     # and run the generator
     for idx in range(length + n_c):
@@ -417,26 +417,17 @@ def calculate_tb_size(modulation_order,
         if target_coderate<=1/4:
             c = np.ceil((n_info_q + 24) / 3816)
             tbs = 8 * c * np.ceil((n_info_q + 24) / (8 * c)) - 24
+        elif n_info > 8424:
+            c = np.ceil((n_info_q + 24) / 8424)
+            tbs = 8 * c * np.ceil((n_info_q + 24) / (8*c)) - 24
         else:
-            if n_info > 8424:
-                c = np.ceil((n_info_q + 24) / 8424)
-                tbs = 8 * c * np.ceil((n_info_q + 24) / (8*c)) - 24
-            else:
-                c = 1
-                tbs = 8 * np.ceil((n_info_q + 24) / 8) - 24
+            c = 1
+            tbs = 8 * np.ceil((n_info_q + 24) / 8) - 24
 
     # TB CRC see 6.2.1 in 38.212
-    if tbs>3824:
-        tb_crc_length = 24
-    else:
-        tb_crc_length = 16
-
+    tb_crc_length = 24 if tbs>3824 else 16
     # if tbs > max CB length, CRC-24 is added; see 5.2.2 in 38.212
-    if c>1: # if multiple CBs exists, additional CRC is applied
-        cb_crc_length = 24
-    else:
-        cb_crc_length = 0
-
+    cb_crc_length = 24 if c>1 else 0
     cb_size = (tbs + tb_crc_length)/c + cb_crc_length # bits per CW
     # internal sanity check
     assert (cb_size%1==0), "cb_size not an integer."
@@ -457,21 +448,20 @@ def calculate_tb_size(modulation_order,
               - np.mod(num_coded_bits/(num_layers*modulation_order),num_cbs)-1:
             l = num_layers * modulation_order \
               * np.floor(num_coded_bits / (num_layers*modulation_order*num_cbs))
-            cw_length += [int(l)]
         else: # last blocks are ceiled
             l = num_layers * modulation_order \
               * np.ceil(num_coded_bits / (num_layers*modulation_order*num_cbs))
-            cw_length += [int(l)]
+        cw_length += [int(l)]
     # sanity check that total length matches to total number of cws
     assert num_coded_bits==np.sum(cw_length), \
                         "Internal error: invalid codeword lengths."
-
-    effective_rate = tb_size / num_coded_bits
 
     if verbose:
         print("Modulation order:", modulation_order)
         if target_coderate is not None:
             print(f"Target coderate: {target_coderate:.3f}")
+        effective_rate = tb_size / num_coded_bits
+
         print(f"Effective coderate: {effective_rate:.3f}")
         print("Number of layers:", num_layers)
         print("------------------")

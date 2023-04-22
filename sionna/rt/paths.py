@@ -130,28 +130,28 @@ class Paths:
                         continue
 
                     # Add a comment to describe this path
-                    r += f'# Path {p} from tx {tx} to rx {rx}' + os.linesep
+                    r += f'# Path {p} from tx {tx} to rx {rx}{os.linesep}'
                     # Vertices and intersected objects
                     vs = vertices[:,rx,tx,p].numpy()
                     objs = objects[:,rx,tx,p].numpy()
 
                     depth = 0
                     # First vertex is the source
-                    r += f"v {src[0]:.8f} {src[1]:.8f} {src[2]:.8f}"+os.linesep
+                    r += f"v {src[0]:.8f} {src[1]:.8f} {src[2]:.8f}{os.linesep}"
                     # Add intersection points
                     for v,o in zip(vs,objs):
                         # Skip if no intersection
                         if o == -1:
                             continue
-                        r += f"v {v[0]:.8f} {v[1]:.8f} {v[2]:.8f}" + os.linesep
+                        r += f"v {v[0]:.8f} {v[1]:.8f} {v[2]:.8f}{os.linesep}"
                         depth += 1
-                    r += f"v {tgt[0]:.8f} {tgt[1]:.8f} {tgt[2]:.8f}"+os.linesep
+                    r += f"v {tgt[0]:.8f} {tgt[1]:.8f} {tgt[2]:.8f}{os.linesep}"
 
                     # Add the connections
                     for i in range(1, depth+2):
                         v0 = i + offset
                         v1 = i + offset + 1
-                        r += f"l {v0} {v1}" + os.linesep
+                        r += f"l {v0} {v1}{os.linesep}"
 
                     # Prepare for the next path
                     r += os.linesep

@@ -407,7 +407,7 @@ class RandomInterleaver(Layer):
         perm_seq = tf.squeeze(perm_seq, axis=0).numpy()
         s_min = seq_length
         for i in range(len(perm_seq)): # search for all positions in perm_seq
-            for j in range(-s_min,s_min,1): # search dist
+            for j in range(-s_min, s_min): # search dist
                 if j==0: # ignore identity
                     continue
                 if i+j>=0 and i+j<seq_length:
@@ -460,18 +460,17 @@ class RandomInterleaver(Layer):
             argument.
         """
 
-        if isinstance(inputs, (tuple, list)):
-            if len(inputs)==1: # if user wants to call with call([x])
-                seed = None
-                x = inputs
-            elif len(inputs)==2:
-                x, seed = inputs
-            else:
-                raise TypeError("inputs cannot have more than 2 entries.")
-        else:
+        if (
+            isinstance(inputs, (tuple, list))
+            and len(inputs) == 1
+            or not isinstance(inputs, (tuple, list))
+        ): # if user wants to call with call([x])
             seed = None
             x = inputs
-
+        elif len(inputs) == 2:
+            x, seed = inputs
+        else:
+            raise TypeError("inputs cannot have more than 2 entries.")
         input_shape = x.shape
         tf.debugging.assert_greater(tf.rank(x), 1)
 
@@ -484,14 +483,10 @@ class RandomInterleaver(Layer):
         else:
             # This mode is not supported for
             raise ValueError("Deinterleaving not possible for random " \
-                "seeds per call (keep_state=False) without explicitly " \
-                "providing the seed as inputs.")
+                    "seeds per call (keep_state=False) without explicitly " \
+                    "providing the seed as inputs.")
         # select if each sample in batch needs own perm (computational complex!)
-        if self._keep_batch_constant:
-            batch_size = 1
-        else:
-            batch_size = tf.shape(x)[0]
-
+        batch_size = 1 if self._keep_batch_constant else tf.shape(x)[0]
         perm_seq = self._generate_perm_full(seed,
                                             tf.shape(x)[self._axis],
                                             batch_size,
@@ -587,18 +582,17 @@ class RandomInterleaver(Layer):
             argument.
         """
 
-        if isinstance(inputs, (tuple, list)):
-            if len(inputs)==1: # if user wants to call with call([x])
-                seed = None
-                x = inputs
-            elif len(inputs)==2:
-                x, seed = inputs
-            else:
-                raise TypeError("inputs cannot have more than 2 entries.")
-        else:
+        if (
+            isinstance(inputs, (tuple, list))
+            and len(inputs) == 1
+            or not isinstance(inputs, (tuple, list))
+        ): # if user wants to call with call([x])
             seed = None
             x = inputs
-
+        elif len(inputs) == 2:
+            x, seed = inputs
+        else:
+            raise TypeError("inputs cannot have more than 2 entries.")
         input_shape = x.shape
         tf.debugging.assert_greater(tf.rank(x), 1)
 
@@ -617,11 +611,7 @@ class RandomInterleaver(Layer):
                                      maxval=2**31-1,
                                      dtype=tf.int32)
         # select if each sample in batch needs own perm (computational complex!)
-        if self._keep_batch_constant:
-            batch_size = 1
-        else:
-            batch_size = tf.shape(x)[0]
-
+        batch_size = 1 if self._keep_batch_constant else tf.shape(x)[0]
         perm_seq = self._generate_perm_full(seed,
                                             tf.shape(x)[self._axis],
                                             batch_size,
@@ -877,7 +867,7 @@ class Turbo3GPPInterleaver(Layer):
         s_min = frame_size
 
         for i in range(len(perm_seq)): # search for all positions in perm_seq
-            for j in range(-s_min,s_min,1): # search dist
+            for j in range(-s_min, s_min): # search dist
                 if j==0: # ignore identity
                     continue
                 if i+j>=0 and i+j<frame_size:
@@ -910,14 +900,14 @@ class Turbo3GPPInterleaver(Layer):
             When rank(``x``)<2.
         """
 
-        if isinstance(inputs, (tuple, list)):
-            if len(inputs)==1: # if user wants to call with call([x])
-                x = inputs
-            else:
-                raise TypeError("inputs cannot have more than 1 entry.")
-        else:
+        if (
+            isinstance(inputs, (tuple, list))
+            and len(inputs) == 1
+            or not isinstance(inputs, (tuple, list))
+        ): # if user wants to call with call([x])
             x = inputs
-
+        else:
+            raise TypeError("inputs cannot have more than 1 entry.")
         input_shape = x.shape
         frame_size = input_shape[self._axis]
 
@@ -987,14 +977,14 @@ class Turbo3GPPInterleaver(Layer):
         This function returns the permuted version of ``inputs``.
         """
 
-        if isinstance(inputs, (tuple, list)):
-            if len(inputs)==1: # if user wants to call with call([x])
-                x = inputs
-            else:
-                raise TypeError("inputs cannot have more than 1 entry.")
-        else:
+        if (
+            isinstance(inputs, (tuple, list))
+            and len(inputs) == 1
+            or not isinstance(inputs, (tuple, list))
+        ): # if user wants to call with call([x])
             x = inputs
-
+        else:
+            raise TypeError("inputs cannot have more than 1 entry.")
         input_shape = x.shape
         frame_size = input_shape[self._axis]
 

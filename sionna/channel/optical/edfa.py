@@ -177,7 +177,4 @@ class EDFA(Layer):
         # Amplify signal
         x = x * tf.cast(tf.sqrt(self._g), self._cdtype)
 
-        # Add noise signal
-        y = x + n
-
-        return y
+        return x + n

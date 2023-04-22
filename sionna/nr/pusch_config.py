@@ -141,8 +141,7 @@ class PUSCHConfig(Config):
 
     @n_start_bwp.setter
     def n_start_bwp(self, value):
-        assert value in range(0,2474), \
-            "n_start_bwp must be in the range from 0 to 2473"
+        assert value in range(2474), "n_start_bwp must be in the range from 0 to 2473"
         self._n_start_bwp = value
 
 
@@ -343,69 +342,70 @@ class PUSCHConfig(Config):
         """
         l_0 = self.l_0
         ind = 0 if self.l_d<4 else self.l_d-3
-        if self.mapping_type=="A":
-            if self.dmrs.length==1:
-                l_bar = [
-                   [[],    [],        [],           []],
-                   [[l_0], [l_0],     [l_0],        [l_0]],
-                   [[l_0], [l_0],     [l_0],        [l_0]],
-                   [[l_0], [l_0],     [l_0],        [l_0]],
-                   [[l_0], [l_0],     [l_0],        [l_0]],
-                   [[l_0], [l_0, 7],  [l_0, 7],     [l_0, 7]],
-                   [[l_0], [l_0, 7],  [l_0, 7],     [l_0, 7]],
-                   [[l_0], [l_0, 9],  [l_0, 6, 9],  [l_0, 6, 9]],
-                   [[l_0], [l_0, 9],  [l_0, 6, 9],  [l_0, 6, 9]],
-                   [[l_0], [l_0, 9],  [l_0, 6, 9],  [l_0, 5, 8, 11]],
-                   [[l_0], [l_0, 11], [l_0, 7, 11], [l_0, 5, 8, 11]],
-                   [[l_0], [l_0, 11], [l_0, 7, 11], [l_0, 5, 8, 11]]
+        if self.mapping_type == "A":
+            l_bar = (
+                [
+                    [[], [], [], []],
+                    [[l_0], [l_0], [l_0], [l_0]],
+                    [[l_0], [l_0], [l_0], [l_0]],
+                    [[l_0], [l_0], [l_0], [l_0]],
+                    [[l_0], [l_0], [l_0], [l_0]],
+                    [[l_0], [l_0, 7], [l_0, 7], [l_0, 7]],
+                    [[l_0], [l_0, 7], [l_0, 7], [l_0, 7]],
+                    [[l_0], [l_0, 9], [l_0, 6, 9], [l_0, 6, 9]],
+                    [[l_0], [l_0, 9], [l_0, 6, 9], [l_0, 6, 9]],
+                    [[l_0], [l_0, 9], [l_0, 6, 9], [l_0, 5, 8, 11]],
+                    [[l_0], [l_0, 11], [l_0, 7, 11], [l_0, 5, 8, 11]],
+                    [[l_0], [l_0, 11], [l_0, 7, 11], [l_0, 5, 8, 11]],
                 ]
-            else:
-                l_bar = [
-                   [[],    []],
-                   [[l_0], [l_0]],
-                   [[l_0], [l_0]],
-                   [[l_0], [l_0]],
-                   [[l_0], [l_0]],
-                   [[l_0], [l_0]],
-                   [[l_0], [l_0]],
-                   [[l_0], [l_0, 8]],
-                   [[l_0], [l_0, 8]],
-                   [[l_0], [l_0, 8]],
-                   [[l_0], [l_0, 10]],
-                   [[l_0], [l_0, 10]],
+                if self.dmrs.length == 1
+                else [
+                    [[], []],
+                    [[l_0], [l_0]],
+                    [[l_0], [l_0]],
+                    [[l_0], [l_0]],
+                    [[l_0], [l_0]],
+                    [[l_0], [l_0]],
+                    [[l_0], [l_0]],
+                    [[l_0], [l_0, 8]],
+                    [[l_0], [l_0, 8]],
+                    [[l_0], [l_0, 8]],
+                    [[l_0], [l_0, 10]],
+                    [[l_0], [l_0, 10]],
                 ]
-        elif self.mapping_type=="B":
-            if self.dmrs.length==1:
-                l_bar = [
-                   [[l_0], [l_0],     [l_0],        [l_0]],
-                   [[l_0], [l_0],     [l_0],        [l_0]],
-                   [[l_0], [l_0, 4],  [l_0, 4],     [l_0, 4]],
-                   [[l_0], [l_0, 4],  [l_0, 4],     [l_0, 4]],
-                   [[l_0], [l_0, 4],  [l_0, 4],     [l_0, 4]],
-                   [[l_0], [l_0, 6],  [l_0, 3, 6],  [l_0, 3, 6]],
-                   [[l_0], [l_0, 6],  [l_0, 3, 6],  [l_0, 3, 6]],
-                   [[l_0], [l_0, 8],  [l_0, 4, 8],  [l_0, 3, 6, 9]],
-                   [[l_0], [l_0, 8],  [l_0, 4, 8],  [l_0, 3, 6, 9]],
-                   [[l_0], [l_0, 10], [l_0, 5, 10], [l_0, 3, 6, 9]],
-                   [[l_0], [l_0, 10], [l_0, 5, 10], [l_0, 3, 6, 9]],
-                   [[l_0], [l_0, 10], [l_0, 5, 10], [l_0, 3, 6, 9]]
+            )
+        elif self.mapping_type == "B":
+            l_bar = (
+                [
+                    [[l_0], [l_0], [l_0], [l_0]],
+                    [[l_0], [l_0], [l_0], [l_0]],
+                    [[l_0], [l_0, 4], [l_0, 4], [l_0, 4]],
+                    [[l_0], [l_0, 4], [l_0, 4], [l_0, 4]],
+                    [[l_0], [l_0, 4], [l_0, 4], [l_0, 4]],
+                    [[l_0], [l_0, 6], [l_0, 3, 6], [l_0, 3, 6]],
+                    [[l_0], [l_0, 6], [l_0, 3, 6], [l_0, 3, 6]],
+                    [[l_0], [l_0, 8], [l_0, 4, 8], [l_0, 3, 6, 9]],
+                    [[l_0], [l_0, 8], [l_0, 4, 8], [l_0, 3, 6, 9]],
+                    [[l_0], [l_0, 10], [l_0, 5, 10], [l_0, 3, 6, 9]],
+                    [[l_0], [l_0, 10], [l_0, 5, 10], [l_0, 3, 6, 9]],
+                    [[l_0], [l_0, 10], [l_0, 5, 10], [l_0, 3, 6, 9]],
                 ]
-            else:
-                l_bar = [
-                   [[],    []],
-                   [[],    []],
-                   [[l_0], [l_0]],
-                   [[l_0], [l_0]],
-                   [[l_0], [l_0]],
-                   [[l_0], [l_0, 5]],
-                   [[l_0], [l_0, 5]],
-                   [[l_0], [l_0, 7]],
-                   [[l_0], [l_0, 7]],
-                   [[l_0], [l_0, 9]],
-                   [[l_0], [l_0, 9]],
-                   [[l_0], [l_0, 9]],
+                if self.dmrs.length == 1
+                else [
+                    [[], []],
+                    [[], []],
+                    [[l_0], [l_0]],
+                    [[l_0], [l_0]],
+                    [[l_0], [l_0]],
+                    [[l_0], [l_0, 5]],
+                    [[l_0], [l_0, 5]],
+                    [[l_0], [l_0, 7]],
+                    [[l_0], [l_0, 7]],
+                    [[l_0], [l_0, 9]],
+                    [[l_0], [l_0, 9]],
+                    [[l_0], [l_0, 9]],
                 ]
-
+            )
         return l_bar[ind][self.dmrs.additional_position]
 
     @property
@@ -416,8 +416,7 @@ class PUSCHConfig(Config):
         """
         l = []
         for l_bar in self.l_bar:
-            for l_prime in self.l_prime:
-                l.append(l_bar + l_prime)
+            l.extend(l_bar + l_prime for l_prime in self.l_prime)
         return l
 
     @property
@@ -445,10 +444,7 @@ class PUSCHConfig(Config):
         int, read-only : Number of allocated resource blocks for the
             PUSCH transmissions.
         """
-        if self.n_size_bwp is None:
-            return self.carrier.n_size_grid
-        else:
-            return self.n_size_bwp
+        return self.carrier.n_size_grid if self.n_size_bwp is None else self.n_size_bwp
 
     @property
     def num_subcarriers(self):
@@ -805,10 +801,7 @@ class PUSCHConfig(Config):
                         [ 1j,-1j,-1j, 1j]]
                 w[4] /= 4
 
-        if w is None:
-            return w
-        else:
-            return w[self.tpmi]
+        return w if w is None else w[self.tpmi]
 
     @property
     def num_ov(self):
@@ -827,11 +820,12 @@ class PUSCHConfig(Config):
         # number of allocated REs
         n_re = n_re_per_prb * self.num_resource_blocks
 
-        # total number of bits per slot
-        num_coded_bits = int(self.tb.tb_scaling * self.tb.num_bits_per_symbol \
-                             * self.num_layers * n_re)
-
-        return num_coded_bits
+        return int(
+            self.tb.tb_scaling
+            * self.tb.num_bits_per_symbol
+            * self.num_layers
+            * n_re
+        )
 
     @property
     def tb_size(self):
@@ -910,37 +904,36 @@ class PUSCHConfig(Config):
             # Check that dmrs_port_set matches number of layers
             if len(self.dmrs.dmrs_port_set)>0:
                 assert len(self.dmrs.dmrs_port_set)==self.num_layers, \
-                "num_layers must be equal to the number of dmrs ports"
+                    "num_layers must be equal to the number of dmrs ports"
 
             # Check that num_layers<=num_antenna_ports
             assert self.num_layers <= self.num_antenna_ports,\
-                "num_layers must be <= num_antenna_ports"
+                    "num_layers must be <= num_antenna_ports"
 
             # Check that more than one antenna port is available
             assert self.num_antenna_ports>=2, \
-                "precoding requires two or more antenna ports"
+                    "precoding requires two or more antenna ports"
         else:
             # Check that num_layers==num_antenna_ports
             assert self.num_layers == self.num_antenna_ports,\
-                "num_layers must be == num_antenna_ports"
+                    "num_layers must be == num_antenna_ports"
 
         # Check Tables 6.4.1.1.3-3/4 are valid
         if self.dmrs.length==1:
             if self.mapping_type=="A":
                 assert self.symbol_allocation[1]>=4, \
-                    "Symbol allocation is too short"
+                        "Symbol allocation is too short"
         else:
             assert self.dmrs.additional_position<2, \
-                "dmrs.additional_position must be <2 for this dmrs.length"
+                    "dmrs.additional_position must be <2 for this dmrs.length"
             assert self.symbol_allocation[1]>=4, "Symbol allocation too short"
             if self.mapping_type=="B":
                 assert self.symbol_allocation[1]>=5, \
-                    "Symbol allocation is too short"
+                        "Symbol allocation is too short"
 
         # Check type_a and additional_position position
-        if self.mapping_type=="A":
-            if self.dmrs.additional_position==3:
-                assert self.dmrs.type_a_position==2,\
+        if self.mapping_type == "A" and self.dmrs.additional_position == 3:
+            assert self.dmrs.type_a_position==2,\
                 "additional_position=3 only allowed for type_a_position=2"
 
         # Check for valid TMPI
@@ -960,29 +953,29 @@ class PUSCHConfig(Config):
             assert self.tpmi in range(5), "tpmi must be in [0,...,4]"
 
         # Check that symbol allocation is valid
-        if self.carrier.cyclic_prefix=="normal":
-            max_length = 14
-        elif self.carrier.cyclic_prefix=="extended":
+        if self.carrier.cyclic_prefix == "extended":
             max_length = 12
+        elif self.carrier.cyclic_prefix == "normal":
+            max_length = 14
         if self.mapping_type=="A":
             assert self.symbol_allocation[0]==0, \
-                "symbol_allocation[0] must be 0 for mapping_type A"
+                    "symbol_allocation[0] must be 0 for mapping_type A"
             assert 4<=self.symbol_allocation[1]<=max_length, \
-                "symbol_allocation[1] must be in [4, 14 (or 12)]"
+                    "symbol_allocation[1] must be in [4, 14 (or 12)]"
             if self.dmrs.length==2:
                 assert self.symbol_allocation[1]>=4, \
-                    "symbol_allocation[1] must be >=4 for dmrs.length==2"
+                        "symbol_allocation[1] must be >=4 for dmrs.length==2"
         elif self.mapping_type=="B":
             assert 0<=self.symbol_allocation[0]<=13, \
-                "symbol_allocation[0] must be in [0,13] for mapping_type B"
+                    "symbol_allocation[0] must be in [0,13] for mapping_type B"
             assert 1<=self.symbol_allocation[1]<=max_length, \
-                "symbol_allocation[1] must be in [1, 14 (or 12)]"
+                    "symbol_allocation[1] must be in [1, 14 (or 12)]"
             if self.dmrs.length==2:
                 assert self.symbol_allocation[1]>=5, \
-                    "symbol_allocation[1] must be >=5 for dmrs.length==2"
+                        "symbol_allocation[1] must be >=5 for dmrs.length==2"
         assert self.symbol_allocation[0] \
-               + self.symbol_allocation[1]<=max_length, \
-            "symbol_allocation[0]+symbol_allocation[1] must be < 14 (or 12)"
+                   + self.symbol_allocation[1]<=max_length, \
+                "symbol_allocation[0]+symbol_allocation[1] must be < 14 (or 12)"
 
         attr_list = ["n_size_bwp",
                      "n_start_bwp",
@@ -1000,14 +993,14 @@ class PUSCHConfig(Config):
 
         # check that TBConfig is configured for "PUSCH"
         assert self.tb.channel_type=="PUSCH", \
-                'TB_config must be configured for "PUSCH" transmission.'
+                    'TB_config must be configured for "PUSCH" transmission.'
 
         # Check that the number of DMRS ports equals the number of layers
         # if dmrs_port_set has been set. Otherwise, this is
         # automatically ensured.
         if len(self.dmrs.dmrs_port_set)>0:
             assert self.num_layers==len(self.dmrs.dmrs_port_set), \
-                "num_layers must equal the number of DMRS ports"
+                    "num_layers must equal the number of DMRS ports"
 
         return True
 

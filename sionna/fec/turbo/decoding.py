@@ -336,7 +336,7 @@ class TurboDecoder(Layer):
         mask_ = tf.tile(self.punct_pattern, [rep_times, 1])
         extra_bits  = int(self._depunct_len - rep_times*punct_size)
         if extra_bits  > 0:
-            extra_periods = int(extra_bits/3)
+            extra_periods = extra_bits // 3
             mask_ = tf.concat([mask_, self.punct_pattern[:extra_periods,:]],
                               axis=0)
 
@@ -424,5 +424,4 @@ class TurboDecoder(Layer):
             output = tf.less(0.0, output)
         output = tf.cast(output, self._output_dtype)
 
-        output_reshaped = tf.reshape(output, output_shape)
-        return output_reshaped
+        return tf.reshape(output, output_shape)

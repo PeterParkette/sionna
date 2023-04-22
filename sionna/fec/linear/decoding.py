@@ -113,13 +113,13 @@ class OSDecoder(Layer):
             # check that gm is binary
             if isinstance(enc_mat, np.ndarray):
                 assert np.array_equal(enc_mat, enc_mat.astype(bool)), \
-                    'PC matrix must be binary.'
+                        'PC matrix must be binary.'
             elif isinstance(enc_mat, sp.sparse.csr_matrix):
                 assert np.array_equal(enc_mat.data, enc_mat.data.astype(bool)),\
-                    'PC matrix must be binary.'
+                        'PC matrix must be binary.'
             elif isinstance(enc_mat, sp.sparse.csc_matrix):
                 assert np.array_equal(enc_mat.data, enc_mat.data.astype(bool)),\
-                    'PC matrix must be binary.'
+                        'PC matrix must be binary.'
             else:
                 raise TypeError("Unsupported dtype of pcm.")
 
@@ -134,14 +134,14 @@ class OSDecoder(Layer):
             # test that encoder is already initialized (relevant for conv codes)
             if encoder.k is None:
                 raise AttributeError("It seems as if the encoder is not "\
-                                     "initialized or has no attribute k.")
+                                         "initialized or has no attribute k.")
             # encode identity matrix to get k basis vectors of the code
             u = tf.expand_dims(tf.eye(encoder.k), axis=0)
             # encode and remove batch_dim
             self._gm = tf.cast(tf.squeeze(encoder(u), axis=0), self.dtype)
         else:
             assert (enc_mat is not None),\
-                "enc_mat cannot be None if no encoder is provided."
+                    "enc_mat cannot be None if no encoder is provided."
             if is_pcm:
                 gm = pcm2gm(enc_mat)
             else:
@@ -160,18 +160,19 @@ class OSDecoder(Layer):
         num_symbols = num_patterns * self._n
         if num_symbols>1e9: # number still to be optimized
             print(f"Note: Required memory complexity is large for the "\
-                  f"given code parameters and t={t}. Please consider small " \
-                  f"batch-sizes to keep the inference complexity small and " \
-                  f"activate XLA mode if possible." )
+                      f"given code parameters and t={t}. Please consider small " \
+                      f"batch-sizes to keep the inference complexity small and " \
+                      f"activate XLA mode if possible." )
         if num_symbols>1e11: # number still to be optimized
             raise ResourceWarning("Due to its high complexity, OSD is not " \
-                                 "feasible for the selected parameters. " \
-                                 "Please consider using a smaller value for t.")
+                                     "feasible for the selected parameters. " \
+                                     "Please consider using a smaller value for t.")
 
         # pre-compute all error patterns
         self._err_patterns = []
-        for t_i in range(1, t+1):
-            self._err_patterns.append(self._gen_error_patterns(self._k, t_i))
+        self._err_patterns.extend(
+            self._gen_error_patterns(self._k, t_i) for t_i in range(1, t + 1)
+        )
 
     #########################################
     # Public methods and properties
@@ -234,10 +235,7 @@ class OSDecoder(Layer):
             t error indices.
         """
 
-        err_patterns = []
-        for p in itertools.combinations(range(n), t):
-            err_patterns.append(p)
-
+        err_patterns = list(itertools.combinations(range(n), t))
         return tf.constant(err_patterns)
 
     def _get_dist(self, llr, c_hat):

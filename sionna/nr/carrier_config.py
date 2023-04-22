@@ -109,8 +109,7 @@ class CarrierConfig(Config):
 
     @n_start_grid.setter
     def n_start_grid(self, value):
-        assert value in range(0,2200), \
-            "n_start_grid must be in the range from 0 to 2199"
+        assert value in range(2200), "n_start_grid must be in the range from 0 to 2199"
         self._n_start_grid = value
 
     #---slot_number---#
@@ -140,7 +139,7 @@ class CarrierConfig(Config):
 
     @frame_number.setter
     def frame_number(self, value):
-        assert value in range(0,1024), "frame_number must be in [0, 1023]"
+        assert value in range(1024), "frame_number must be in [0, 1023]"
         self._frame_number = value
 
     #--------------------------#
@@ -155,10 +154,7 @@ class CarrierConfig(Config):
 
             Configured through the `cyclic_prefix`.
         """
-        if self.cyclic_prefix=="normal":
-            return 14
-        else:
-            return 12
+        return 14 if self.cyclic_prefix=="normal" else 12
 
     @property
     def num_slots_per_subframe(self):

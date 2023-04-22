@@ -123,22 +123,13 @@ class MIMOOFDMLink(Model):
         if det_method == "lmmse":
             self.detector = LinearDetector("lmmse", output, "app", rg, sm, constellation_type="qam", num_bits_per_symbol=num_bits_per_symbol, hard_out=hard_out)
         elif det_method == 'k-best':
-            if det_param is None:
-                k = 64
-            else:
-                k = det_param
+            k = 64 if det_param is None else det_param
             self.detector = KBestDetector(output, num_tx, k, rg, sm, constellation_type="qam", num_bits_per_symbol=num_bits_per_symbol, hard_out=hard_out)
         elif det_method == "ep":
-            if det_param is None:
-                l = 10
-            else:
-                l = det_param
+            l = 10 if det_param is None else det_param
             self.detector = EPDetector(output, rg, sm, num_bits_per_symbol, l=l, hard_out=hard_out)
         elif det_method == 'mmse-pic':
-            if det_param is None:
-                l = 4
-            else:
-                l = det_param
+            l = 4 if det_param is None else det_param
             self.detector = MMSEPICDetector(output, rg, sm, 'app', num_iter=l, constellation_type="qam", num_bits_per_symbol=num_bits_per_symbol, hard_out=hard_out)
 
         if coded:

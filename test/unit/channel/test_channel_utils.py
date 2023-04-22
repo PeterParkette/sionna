@@ -164,6 +164,6 @@ class TestTimeToOFDMChannel(unittest.TestCase):
            of positive and negative taps
         """
         cyclic_prefix_length = 10
-        for l_max in range(0, cyclic_prefix_length+1):
+        for l_max in range(cyclic_prefix_length+1):
             for l_min in range(l_max-cyclic_prefix_length, 1):
                 self.assertTrue(run_time_to_ofdm_channel_test(l_min, l_max, cyclic_prefix_length))

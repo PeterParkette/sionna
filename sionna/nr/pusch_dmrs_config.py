@@ -210,29 +210,27 @@ class PUSCHDMRSConfig(Config):
             depends on the DMRS `config_type` and `length`. It can be
             equal to 4, 6, 8, or 12.
         """
-        if self.length==1:
-            if self.config_type==1:
-                if self.num_cdm_groups_without_data==1:
-                    return [0,1]
-                else:
-                    return [0,1,2,3]
-                #max_num_dmrs_ports = self.num_cdm_groups_without_data*2
-            elif self.config_type==2:
-                if self.num_cdm_groups_without_data==1:
-                    return [0,1]
-                elif self.num_cdm_groups_without_data==2:
-                    return [0,1,2,3]
-                else:
-                    return [0,1,2,3,4,5]
-                #max_num_dmrs_ports = self.num_cdm_groups_without_data*2
-        elif self.length==2:
-            if self.config_type==1:
-                if self.num_cdm_groups_without_data==1:
-                    return [0,1,4,5]
-                else:
-                    return [0,1,2,3,4,5,6,7]
-                #max_num_dmrs_ports = self.num_cdm_groups_without_data*4
-            elif self.config_type==2:
+        if self.length == 1:
+            if (
+                self.config_type == 1
+                and self.num_cdm_groups_without_data == 1
+                or self.config_type != 1
+                and self.config_type == 2
+                and self.num_cdm_groups_without_data == 1
+            ):
+                return [0,1]
+            elif (
+                self.config_type == 1
+                or self.config_type == 2
+                and self.num_cdm_groups_without_data == 2
+            ):
+                return [0,1,2,3]
+            elif self.config_type == 2:
+                return [0,1,2,3,4,5]
+        elif self.length == 2:
+            if self.config_type == 1:
+                return [0,1,4,5] if self.num_cdm_groups_without_data==1 else [0,1,2,3,4,5,6,7]
+            elif self.config_type == 2:
                 if self.num_cdm_groups_without_data==1:
                     return [0,1,6,7]
                 elif self.num_cdm_groups_without_data==2:

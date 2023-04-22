@@ -1650,21 +1650,21 @@ class LMMSEInterpolator(BaseChannelInterpolator):
         time_smoothing = False
         for o in order:
             assert o in ('s', 'f', 't'), f"Uknown dimension {o}"
-            if o == 's':
+            if o == 'f':
+                assert not freq_smoothing,\
+                        "Frequency interpolation can be specified once only"
+                freq_smoothing = True
+            elif o == 's':
                 assert not spatial_smoothing,\
-                    "Spatial smoothing can be specified at most once"
+                        "Spatial smoothing can be specified at most once"
                 spatial_smoothing = True
             elif o == 't':
                 assert not time_smoothing,\
-                    "Temporal interpolation can be specified once only"
+                        "Temporal interpolation can be specified once only"
                 time_smoothing = True
-            elif o == 'f':
-                assert not freq_smoothing,\
-                    "Frequency interpolation can be specified once only"
-                freq_smoothing = True
         if spatial_smoothing:
             assert cov_mat_space is not None,\
-                "A spatial covariance matrix is required for spatial smoothing"
+                    "A spatial covariance matrix is required for spatial smoothing"
         assert freq_smoothing, "Frequency interpolation is required"
         assert time_smoothing, "Time interpolation is required"
 
@@ -1692,13 +1692,11 @@ class LMMSEInterpolator(BaseChannelInterpolator):
             # Is it the last one?
             last_step = i == len(order)-1
             # Frequency
-            if o == "f":
-                interpolator = LMMSEInterpolator1D(pilot_mask, cov_mat_freq,
-                                                        last_step=last_step)
-                pilot_mask = self._update_pilot_mask_interp(pilot_mask)
+            if o == 's':
+                interpolator = SpatialChannelFilter(cov_mat_space,
+                                                    last_step=last_step)
                 err_var_mask = tf.cast(pilot_mask == 1,
-                                        cov_mat_freq.dtype.real_dtype)
-            # Time
+                                            cov_mat_freq.dtype.real_dtype)
             elif o == 't':
                 pilot_mask = tf.transpose(pilot_mask, [0, 1, 3, 2])
                 interpolator = LMMSEInterpolator1D(pilot_mask, cov_mat_time,
@@ -1707,12 +1705,12 @@ class LMMSEInterpolator(BaseChannelInterpolator):
                 pilot_mask = tf.transpose(pilot_mask, [0, 1, 3, 2])
                 err_var_mask = tf.cast(pilot_mask == 1,
                                             cov_mat_freq.dtype.real_dtype)
-            # Space
-            elif o == 's':
-                interpolator = SpatialChannelFilter(cov_mat_space,
-                                                    last_step=last_step)
+            elif o == "f":
+                interpolator = LMMSEInterpolator1D(pilot_mask, cov_mat_freq,
+                                                        last_step=last_step)
+                pilot_mask = self._update_pilot_mask_interp(pilot_mask)
                 err_var_mask = tf.cast(pilot_mask == 1,
-                                            cov_mat_freq.dtype.real_dtype)
+                                        cov_mat_freq.dtype.real_dtype)
             interpolators.append(interpolator)
             err_var_masks.append(err_var_mask)
         self._interpolators = interpolators

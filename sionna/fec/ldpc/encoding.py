@@ -311,18 +311,17 @@ class LDPC5GEncoder(Layer):
         n = int(n)
         assert(n>0), "n must be a positive integer."
         assert(num_bits_per_symbol>0), \
-                    "num_bits_per_symbol must be a positive integer."
+                        "num_bits_per_symbol must be a positive integer."
         num_bits_per_symbol = int(num_bits_per_symbol)
 
         assert(n%num_bits_per_symbol==0),\
-            "n must be a multiple of num_bits_per_symbol."
+                "n must be a multiple of num_bits_per_symbol."
 
         # pattern as defined in Sec 5.4.2.2
         perm_seq = np.zeros(n, dtype=int)
-        for j in range(int(n/num_bits_per_symbol)):
+        for j in range(n // num_bits_per_symbol):
             for i in range(num_bits_per_symbol):
-                perm_seq[i + j*num_bits_per_symbol] \
-                    = int(i * int(n/num_bits_per_symbol) + j)
+                perm_seq[i + j*num_bits_per_symbol] = int(i * (n // num_bits_per_symbol) + j)
 
         perm_seq_inv = np.argsort(perm_seq)
 
@@ -331,15 +330,7 @@ class LDPC5GEncoder(Layer):
     def _sel_basegraph(self, k, r):
         """Select basegraph according to [3GPPTS38212_LDPC]_."""
 
-        if k <= 292:
-            bg = "bg2"
-        elif k <= 3824 and r <= 0.67:
-            bg = "bg2"
-        elif r <= 0.25:
-            bg = "bg2"
-        else:
-            bg = "bg1"
-
+        bg = "bg2" if k <= 292 or k <= 3824 and r <= 0.67 or r <= 0.25 else "bg1"
         # add for consistency
         if bg=="bg1" and k>8448:
             raise ValueError("K is not supported by BG1 (too large).")
@@ -413,9 +404,7 @@ class LDPC5GEncoder(Layer):
         idx = 0
         for r in range(bm.shape[0]):
             for c in range(bm.shape[1]):
-                if bm[r,c]==-1: # -1 is used as all-zero matrix placeholder
-                    pass #do nothing (sparse)
-                else:
+                if bm[r, c] != -1:
                     # roll matrix by bm[r,c]
                     c_roll = np.mod(im+bm[r,c], z)
                     # append rolled identity matrix to pcm
@@ -423,10 +412,9 @@ class LDPC5GEncoder(Layer):
                     c_idx[idx*z:(idx+1)*z] = c*z + c_roll
                     idx += 1
 
-        # generate lifted sparse matrix from incides
-        pcm = sp.sparse.csr_matrix((data,(r_idx, c_idx)),
-                                   shape=(z*bm.shape[0], z*bm.shape[1]))
-        return pcm
+        return sp.sparse.csr_matrix(
+            (data, (r_idx, c_idx)), shape=(z * bm.shape[0], z * bm.shape[1])
+        )
 
     def _sel_lifting(self, k, bg):
         """Select lifting as defined in Sec. 5.2.2 in [3GPPTS38212_LDPC]_.
@@ -451,38 +439,29 @@ class LDPC5GEncoder(Layer):
 
         if bg == "bg1":
             k_b = 22
+        elif k > 640:
+            k_b = 10
+        elif k > 560:
+            k_b = 9
+        elif k > 192:
+            k_b = 8
         else:
-            if k > 640:
-                k_b = 10
-            elif k > 560:
-                k_b = 9
-            elif k > 192:
-                k_b = 8
-            else:
-                k_b = 6
+            k_b = 6
 
         # find the min of Z from Tab. 5.3.2-1 s.t. k_b*Z>=K'
         min_val = 100000
         z = 0
         i_ls = 0
-        i = -1
-        for s in s_val:
-            i += 1
+        for i, s in enumerate(s_val):
             for s1 in s:
                 x = k_b *s1
-                if  x >= k:
-                    # valid solution
-                    if x < min_val:
-                        min_val = x
-                        z = s1
-                        i_ls = i
+                if x >= k and x < min_val:
+                    min_val = x
+                    z = s1
+                    i_ls = i
 
         # and set K=22*Z for bg1 and K=10Z for bg2
-        if bg == "bg1":
-            k_b = 22
-        else:
-            k_b = 10
-
+        k_b = 22 if bg == "bg1" else 10
         return z, i_ls, k_b
 
     def _gen_submat(self, bm, k_b, z, bg):
@@ -552,11 +531,7 @@ class LDPC5GEncoder(Layer):
 
         # permutation indices
         pm_a= int(bm_b[0,0])
-        if bg=="bg1":
-            pm_b_inv = int(-bm_b[1, 0])
-        else: # structure of B is slightly different for bg2
-            pm_b_inv = int(-bm_b[2, 0])
-
+        pm_b_inv = int(-bm_b[1, 0]) if bg=="bg1" else int(-bm_b[2, 0])
         hm_b_inv = np.zeros([4*z, 4*z])
 
         im = np.eye(z)
@@ -744,7 +719,7 @@ class LDPC5GEncoder(Layer):
             c_short = tf.gather(c_short, self._out_int, axis=-1)
 
         # Reshape c_short so that it matches the original input dimensions
-        output_shape = input_shape[0:-1] + [self.n]
+        output_shape = input_shape[:-1] + [self.n]
         output_shape[0] = -1
         c_reshaped = tf.reshape(c_short, output_shape)
 

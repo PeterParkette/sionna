@@ -391,11 +391,7 @@ class TBEncoder(Layer):
                           self._cb_size-self._cb_crc_length))
 
         # if relevant apply CB CRC
-        if self._cb_crc_length==24:
-            u_cb_crc = self._cb_crc_encoder(u_cb)
-        else:
-            u_cb_crc = u_cb # no CRC applied if only one CB exists
-
+        u_cb_crc = self._cb_crc_encoder(u_cb) if self._cb_crc_length==24 else u_cb
         c_cb = self._encoder(u_cb_crc)
 
         # CB concatenation
@@ -409,11 +405,7 @@ class TBEncoder(Layer):
         c = c[:, :, :np.sum(self._cw_lengths)]
 
         # scrambler
-        if self._use_scrambler:
-            c_scr = self._scrambler(c)
-        else: # disable scrambler (non-standard compliant)
-            c_scr = c
-
+        c_scr = self._scrambler(c) if self._use_scrambler else c
         # cast to output dtype
         c_scr = tf.cast(c_scr, self.dtype)
 
@@ -421,6 +413,4 @@ class TBEncoder(Layer):
         output_shape = input_shape
         output_shape[0] = -1
         output_shape[-1] = np.sum(self._cw_lengths)
-        c_tb = tf.reshape(c_scr, output_shape)
-
-        return c_tb
+        return tf.reshape(c_scr, output_shape)

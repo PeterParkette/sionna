@@ -397,10 +397,7 @@ class LDPCBPDecoder(Layer):
     @property
     def edge_weights(self):
         """Trainable weights of the BP decoder."""
-        if not self._has_weights:
-            return []
-        else:
-            return self._edge_weights
+        return self._edge_weights if self._has_weights else []
 
     @property
     def output_dtype(self):
@@ -561,10 +558,7 @@ class LDPCBPDecoder(Layer):
     def _where_ragged_inv(self, msg):
         """Helper to replace small elements from ragged tensor (called with
         map_flat_values) with exact `0`."""
-        msg_mod =  tf.where(tf.less(tf.abs(msg), 1e-7),
-                            tf.zeros_like(msg),
-                            msg)
-        return msg_mod
+        return tf.where(tf.less(tf.abs(msg), 1e-7), tf.zeros_like(msg), msg)
 
     def _cn_update_tanh(self, msg):
         """Check node update function implementing the exact boxplus operation.
@@ -1024,10 +1018,7 @@ class LDPCBPDecoder(Layer):
         # cast output to output_dtype
         x_out = tf.cast(x_reshaped, self._output_dtype)
 
-        if not self._stateful:
-            return x_out
-        else:
-            return x_out, msg_vn
+        return (x_out, msg_vn) if self._stateful else x_out
 
 class LDPC5GDecoder(LDPCBPDecoder):
     # pylint: disable=line-too-long
@@ -1368,7 +1359,7 @@ class LDPC5GDecoder(LDPCBPDecoder):
 
         # negative sign due to logit definition
         z = -tf.cast(self._llr_max, self._output_dtype) \
-            * tf.ones([batch_size, k_filler], self._output_dtype)
+                * tf.ones([batch_size, k_filler], self._output_dtype)
 
         llr_5g = tf.concat([x1, z, x2], 1)
 
@@ -1382,7 +1373,7 @@ class LDPC5GDecoder(LDPCBPDecoder):
             # reconstruct u_hat # code is systematic
             u_hat = tf.slice(x_hat, [0,0], [batch_size, self.encoder.k])
             # Reshape u_hat so that it matches the original input dimensions
-            output_shape = llr_ch_shape[0:-1] + [self.encoder.k]
+            output_shape = llr_ch_shape[:-1] + [self.encoder.k]
             # overwrite first dimension as this could be None (Keras)
             output_shape[0] = -1
             u_reshaped = tf.reshape(u_hat, output_shape)
@@ -1390,11 +1381,7 @@ class LDPC5GDecoder(LDPCBPDecoder):
             # enable other output datatypes than tf.float32
             u_out = tf.cast(u_reshaped, self._output_dtype)
 
-            if not self._stateful:
-                return u_out
-            else:
-                return u_out, msg_vn
-
+            return (u_out, msg_vn) if self._stateful else u_out
         else: # return all codeword bits
             # the transmitted CW bits are not the same as used during decoding
             # cf. last parts of 5G encoding function
@@ -1430,7 +1417,4 @@ class LDPC5GDecoder(LDPCBPDecoder):
             # enable other output datatypes than tf.float32
             x_out = tf.cast(x_short, self._output_dtype)
 
-            if not self._stateful:
-                return x_out
-            else:
-                return x_out, msg_vn
+            return (x_out, msg_vn) if self._stateful else x_out

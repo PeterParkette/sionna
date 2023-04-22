@@ -124,7 +124,7 @@ class RadioDevice(OrientedObject):
     @position.setter
     def position(self, new_position):
         new_position = tf.cast(new_position, dtype=self._rdtype)
-        if not (tf.rank(new_position) == 1 and new_position.shape[0] == 3):
+        if tf.rank(new_position) != 1 or new_position.shape[0] != 3:
             msg = "Position must be shaped as [x,y,z] (rank=1 and shape=[3])"
             raise ValueError(msg)
         self._position.assign(new_position)
@@ -139,7 +139,7 @@ class RadioDevice(OrientedObject):
     @orientation.setter
     def orientation(self, new_orient):
         new_orient = tf.cast(new_orient, dtype=self._rdtype)
-        if not (tf.rank(new_orient) == 1 and new_orient.shape[0] == 3):
+        if tf.rank(new_orient) != 1 or new_orient.shape[0] != 3:
             msg = "Orientation must be shaped as [a,b,c] (rank=1 and shape=[3])"
             raise ValueError(msg)
         self._orientation.assign(new_orient)
@@ -172,7 +172,7 @@ class RadioDevice(OrientedObject):
             target = target.position
         else:
             target = tf.cast(target, dtype=self._rdtype)
-            if not target.shape[0]==3:
+            if target.shape[0] != 3:
                 raise ValueError("`target` must be a three-element vector)")
 
         # Compute angles relative to LCS
