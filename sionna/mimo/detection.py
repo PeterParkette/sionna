@@ -573,11 +573,10 @@ class MaximumLikelihoodDetector(Layer):
         if self._output == 'bit':
             # Compute LLRs or hard decisions
             return self._logits2llr(logits)
+        if self._hard_out:
+            return tf.argmax(logits, axis=-1, output_type=tf.int32)
         else:
-            if self._hard_out:
-                return tf.argmax(logits, axis=-1, output_type=tf.int32)
-            else:
-                return logits
+            return logits
 
 class MaximumLikelihoodDetectorWithPrior(MaximumLikelihoodDetector):
     # pylint: disable=line-too-long
@@ -964,22 +963,22 @@ class KBestDetector(Layer):
                  **kwargs):
         super().__init__(dtype=dtype, **kwargs)
         assert dtype in [tf.complex64, tf.complex128],\
-            "dtype must be tf.complex64 or tf.complex128."
+                "dtype must be tf.complex64 or tf.complex128."
 
         assert output in ("bit", "symbol"), "Unknown output"
 
         err_msg = "You must provide either constellation or " + \
-                  "constellation_type and num_bits_per_symbol."
+                      "constellation_type and num_bits_per_symbol."
         if constellation is None:
             assert constellation_type is not None and \
-                   num_bits_per_symbol is not None, err_msg
+                       num_bits_per_symbol is not None, err_msg
         else:
             assert constellation_type is None and \
-                   num_bits_per_symbol is None, err_msg
+                       num_bits_per_symbol is None, err_msg
 
         if constellation is not None:
             assert constellation.points.dtype==dtype, \
-                "Constellation has wrong dtype."
+                    "Constellation has wrong dtype."
 
         self._output = output
         self._hard_out = hard_out
@@ -1034,16 +1033,17 @@ class KBestDetector(Layer):
         self._k = np.minimum(k, self._num_symbols**self._num_streams)
         if self._k < k:
             msg = "KBestDetector: " + \
-                  f"The provided value of k={k} is larger than " + \
-                  "the possible maximum number of paths. " + \
-                  f"It has been set to k={self._k}."
+                      f"The provided value of k={k} is larger than " + \
+                      "the possible maximum number of paths. " + \
+                      f"It has been set to k={self._k}."
             warnings.warn(msg)
 
         # Compute the number of previous paths a layer needs to consider
         num_paths = [1] # The first layer considers a single path
-        for l in range(1, self._num_streams+1):
-            # The lth layer considers min(k, num_symbols**l) paths
-            num_paths.append(np.minimum(self._k, self._num_symbols**l))
+        num_paths.extend(
+            np.minimum(self._k, self._num_symbols**l)
+            for l in range(1, self._num_streams + 1)
+        )
         self._num_paths = tf.constant(tf.stack(num_paths, 0), tf.int32)
 
         # The symbols and indices for all paths will be stored in tensors
@@ -1053,7 +1053,7 @@ class KBestDetector(Layer):
         # that will be updated through tf.tensor_scatter_nd_update.
         indices = np.zeros([self._num_streams, self._k*self._num_streams, 2],
                            np.int32)
-        for l in range(0, self._num_streams):
+        for l in range(self._num_streams):
             ind = np.zeros([self._num_paths[l+1], self._num_streams])
             ind[:, :l+1] = 1
             ind = np.stack(np.where(ind), -1)
@@ -1075,7 +1075,7 @@ class KBestDetector(Layer):
                                              dtype=dtype.real_dtype)
         else:
             assert self._hard_out is True, \
-                "Soft-symbols are not supported for this detector."
+                    "Soft-symbols are not supported for this detector."
 
     @property
     def list2llr(self):
@@ -1254,7 +1254,7 @@ class KBestDetector(Layer):
         path_inds = tf.zeros([batch_size, self._k, self._num_streams],tf.int32)
 
         # Sequential K-Best algorithm
-        for stream in range(0, self._num_streams):
+        for stream in range(self._num_streams):
             dists, path_syms, path_inds = self._next_layer(y,
                                                            r,
                                                            dists,
@@ -1274,7 +1274,7 @@ class KBestDetector(Layer):
             # Real-valued representation
             if self._use_real_rep:
                 hard_dec = \
-                    self._pam2qam(hard_dec[...,:self._num_streams//2],
+                        self._pam2qam(hard_dec[...,:self._num_streams//2],
                                   hard_dec[...,self._num_streams//2:])
 
             # Hard decisions on bits
@@ -1416,17 +1416,13 @@ class EPDetector(Layer):
                  **kwargs):
         super().__init__(dtype=dtype, **kwargs)
         assert dtype in [tf.complex64, tf.complex128], \
-            "Invalid dtype"
+                "Invalid dtype"
         self._cdtype = tf.dtypes.as_dtype(dtype)
         self._rdtype = self._cdtype.real_dtype
 
         # Variable used to avoid numerical instabilities
         # See paragraph after Eq. (38)
-        if self.dtype=="complex64":
-            self._prec = 1e-6
-        else:
-            self._prec = 1e-12
-
+        self._prec = 1e-6 if self.dtype=="complex64" else 1e-12
         assert output in ("bit", "symbol"), "Unknown output"
         self._output = output
 
@@ -1584,7 +1580,7 @@ class EPDetector(Layer):
 
             return qam_ind
 
-        elif self._output=="symbol" and not self._hard_out:
+        elif self._output == "symbol":
             qam_logits = self._pam2qam(pam1_logits, pam2_logits)
 
             # Reshape batch dimensions

@@ -230,10 +230,7 @@ def visualize(pattern):
     g_db = 10*np.log10(g)
     g_db_max = np.max(g_db)
     g_db_min = np.min(g_db)
-    if g_db_min==g_db_max:
-        g_db_min = -30
-    else:
-        g_db_min = np.maximum(-60., g_db_min)
+    g_db_min = -30 if g_db_min==g_db_max else np.maximum(-60., g_db_min)
     fig_v = plt.figure()
     plt.polar(theta, g_db)
     fig_v.axes[0].set_rmin(g_db_min)
@@ -253,11 +250,7 @@ def visualize(pattern):
     g_db = 10*np.log10(g)
     g_db_max = np.max(g_db)
     g_db_min = np.min(g_db)
-    if g_db_min==g_db_max:
-        g_db_min = -30
-    else:
-        g_db_min = np.maximum(-60., g_db_min)
-
+    g_db_min = -30 if g_db_min==g_db_max else np.maximum(-60., g_db_min)
     fig_h = plt.figure()
     plt.polar(phi, g_db)
     fig_h.axes[0].set_rmin(g_db_min)
@@ -371,7 +364,7 @@ def iso_pattern(theta, phi, slant_angle=0.0, dtype=tf.complex64):
     rdtype = dtype.real_dtype
     theta = tf.cast(theta, rdtype)
     phi = tf.cast(phi, rdtype)
-    if not theta.shape==phi.shape:
+    if theta.shape != phi.shape:
         raise ValueError("theta and phi must have the same shape.")
     c = tf.ones_like(theta, dtype=dtype)
     return polarization_model_1(c, theta, phi, slant_angle)
@@ -412,7 +405,7 @@ def dipole_pattern(theta, phi, slant_angle=0.0, dtype=tf.complex64):
     k = tf.cast(tf.sqrt(1.5), dtype)
     theta = tf.cast(theta, rdtype)
     phi = tf.cast(phi, rdtype)
-    if not theta.shape==phi.shape:
+    if theta.shape != phi.shape:
         raise ValueError("theta and phi must have the same shape.")
     c = k*tf.cast(tf.sin(theta), dtype)
     return polarization_model_1(c, theta, phi, slant_angle)
@@ -454,7 +447,7 @@ def hw_dipole_pattern(theta, phi, slant_angle=0.0, dtype=tf.complex64):
     k = tf.cast(np.sqrt(1.643), rdtype)
     theta = tf.cast(theta, rdtype)
     phi = tf.cast(phi, rdtype)
-    if not theta.shape== phi.shape:
+    if theta.shape != phi.shape:
         raise ValueError("theta and phi must have the same shape.")
     c = k*tf.math.divide_no_nan(tf.cos(PI/2*tf.cos(theta)), tf.sin(theta))
     c = tf.cast(c, dtype)
@@ -499,7 +492,7 @@ def tr38901_pattern(theta, phi, slant_angle=0.0, dtype=tf.complex64):
     # Wrap phi to [-PI,PI]
     phi = tf.math.floormod(phi+PI, 2*PI)-PI
 
-    if not theta.shape==phi.shape:
+    if theta.shape != phi.shape:
         raise ValueError("theta and phi must have the same shape.")
     theta_3db = phi_3db = tf.cast(65/180*PI, rdtype)
     a_max = sla_v = 30

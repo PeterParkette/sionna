@@ -146,11 +146,7 @@ class TBDecoder(Layer):
                             (-1, self._tb_encoder.num_tx, self._tb_encoder.n))
 
         # undo scrambling (only if scrambler was used)
-        if self._descrambler is not None:
-            llr_scr = self._descrambler(llr_ch)
-        else:
-            llr_scr = llr_ch
-
+        llr_scr = llr_ch if self._descrambler is None else self._descrambler(llr_ch)
         # undo CB interleaving and puncturing
         num_fillers = self._tb_encoder.ldpc_encoder.n * self._tb_encoder.num_cbs - np.sum(self._tb_encoder.cw_lengths)
         llr_int = tf.concat([llr_scr,

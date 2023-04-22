@@ -342,9 +342,9 @@ class SSFM(Layer):
 
     def _calculate_step_width(self, q, remaining_length):
         max_power = tf.math.reduce_max(tf.math.pow(tf.math.abs(q),2.0),axis=None)
-        # ensure that the exact length is reached in the end
-        dz = tf.math.minimum(self._phase_inc / self._gamma / max_power,remaining_length)
-        return dz
+        return tf.math.minimum(
+            self._phase_inc / self._gamma / max_power, remaining_length
+        )
 
     def _adaptive_step(self,q, precalculations, remaining_length, step_counter):
 
@@ -404,20 +404,20 @@ class SSFM(Layer):
         # Window function calculation (depends on length of the signal)
         window = tf.concat(
             [
-                self._window[0:self._half_window_length],
+                self._window[: self._half_window_length],
                 tf.complex(
                     tf.ones(
-                        [input_shape[-1] - 2*self._half_window_length],
-                        dtype=self._rdtype
+                        [input_shape[-1] - 2 * self._half_window_length],
+                        dtype=self._rdtype,
                     ),
                     tf.zeros(
-                        [input_shape[-1] - 2*self._half_window_length],
-                        dtype=self._rdtype
-                    )
+                        [input_shape[-1] - 2 * self._half_window_length],
+                        dtype=self._rdtype,
+                    ),
                 ),
-                self._window[self._half_window_length::]
+                self._window[self._half_window_length : :],
             ],
-            axis=0
+            axis=0,
         )
 
         # All-zero vector

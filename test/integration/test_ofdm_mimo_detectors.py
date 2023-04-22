@@ -54,19 +54,23 @@ class OFDMModel(tf.keras.Model):
         self.n = int(self.rg.num_data_symbols * self.num_bits_per_symbol)
         self.k = int(self.n * self.coderate)
 
-        self.ut_array = AntennaArray(num_rows=1,
-                                     num_cols=int(self.num_tx_ant/2),
-                                     polarization="dual",
-                                     polarization_type="cross",
-                                     antenna_pattern="38.901",
-                                     carrier_frequency=self.carrier_frequency)
+        self.ut_array = AntennaArray(
+            num_rows=1,
+            num_cols=self.num_tx_ant // 2,
+            polarization="dual",
+            polarization_type="cross",
+            antenna_pattern="38.901",
+            carrier_frequency=self.carrier_frequency,
+        )
 
-        self.bs_array = AntennaArray(num_rows=1,
-                                     num_cols=int(self.num_rx_ant/2),
-                                     polarization="dual",
-                                     polarization_type="cross",
-                                     antenna_pattern="38.901",
-                                     carrier_frequency=self.carrier_frequency)
+        self.bs_array = AntennaArray(
+            num_rows=1,
+            num_cols=self.num_rx_ant // 2,
+            polarization="dual",
+            polarization_type="cross",
+            antenna_pattern="38.901",
+            carrier_frequency=self.carrier_frequency,
+        )
 
         self.cdl = CDL(model="A",
                        delay_spread=100e-9,
@@ -85,11 +89,7 @@ class OFDMModel(tf.keras.Model):
         self.rg_mapper = ResourceGridMapper(self.rg)
         self.remove_nulled_scs = RemoveNulledSubcarriers(self.rg)
 
-        if output=="symbol":
-            hard_out = True
-        else:
-            hard_out = False
-
+        hard_out = output == "symbol"
         self._output = output
 
         if detector in ["mf", "zf", "lmmse"]:
@@ -137,9 +137,7 @@ class TestOFDMMIMODetectors(unittest.TestCase):
                         sionna.config.xla_compat=True
                         ber = compute_ber(*tf.function(model, jit_compile=True)(4))
                         sionna.config.xla_compat=False
-                    if detector=="mf":
-                        self.assertTrue(ber<1)
-                    elif detector=="ep" and mode=="xla":
+                    if detector == "mf" or detector == "ep" and mode == "xla":
                         self.assertTrue(ber<1)
                     else:
                         self.assertTrue(ber==0)

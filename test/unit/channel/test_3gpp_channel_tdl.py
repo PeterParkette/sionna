@@ -202,7 +202,7 @@ class TestTDL(unittest.TestCase):
         h = TestTDL.channel_coeff[model]
         powers = np.abs(h)
         for i,p in enumerate(ref_powers):
-            if i == 0 and (model == 'D' or model == 'E'):
+            if i == 0 and model in ['D', 'E']:
                 K = np.power(10.0, TDL_RICIAN_K[model]/10.0)
                 P0 = ref_powers[0]
                 s = np.sqrt(0.5*P0/(1+K))
@@ -219,7 +219,7 @@ class TestTDL(unittest.TestCase):
     def corr(self, x, max_lags):
         num_lags = x.shape[-1]//2
         c = np.zeros([max_lags], dtype=complex)
-        for i in range(0, max_lags):
+        for i in range(max_lags):
             c[i] = np.mean(np.conj(x[...,:num_lags])*x[...,i:num_lags+i])
         return c
 
@@ -248,19 +248,15 @@ class TestTDL(unittest.TestCase):
         time = np.arange(max_lag)/TestTDL.SAMPLING_FREQUENCY
         #
         for i, p in enumerate(ref_powers):
-            if i == 0 and (model == 'D' or model == 'E'):
-                h = self.channel_coeff[model]
-                h = h[:,i,:]
+            h = self.channel_coeff[model]
+            h = h[:,i,:]
+            if i == 0 and model in ['D', 'E']:
                 r = self.corr(h, max_lag)
                 #
                 K = np.power(10.0, TDL_RICIAN_K[model]/10.0)
                 ref_r = self.auto_complex_rice(TestTDL.MAX_DOPPLER, K,
                                                 TestTDL.LoS_AoA, time)*p
-                max_err = np.max(np.abs(r - ref_r))
-                self.assertLessEqual(max_err, TestTDL.MAX_ERR, f'{model}')
             else:
-                h = self.channel_coeff[model]
-                h = h[:,i,:]
                 r_real = self.corr(h.real, max_lag)
                 r_imag = self.corr(h.imag, max_lag)
                 r      = self.corr(h, max_lag)
@@ -274,8 +270,8 @@ class TestTDL(unittest.TestCase):
                 self.assertLessEqual(max_err, TestTDL.MAX_ERR, f'{model}')
                 #
                 ref_r = self.auto_complex(TestTDL.MAX_DOPPLER, time, p)
-                max_err = np.max(np.abs(r - ref_r))
-                self.assertLessEqual(max_err, TestTDL.MAX_ERR, f'{model}')
+            max_err = np.max(np.abs(r - ref_r))
+            self.assertLessEqual(max_err, TestTDL.MAX_ERR, f'{model}')
                 #
                 # ref_r_abs2 = self.auto_abs2(TestTDL.MAX_DOPPLER,
                 #                             TestTDL.NUM_SINUSOIDS, time, p)
@@ -328,9 +324,9 @@ class TestTDL(unittest.TestCase):
 
         # Test
         max_err = np.max(np.abs(est_rx_cov - rx_corr_mat))
-        self.assertLessEqual(max_err, TestTDL.MAX_ERR, f'Receiver correlation')
+        self.assertLessEqual(max_err, TestTDL.MAX_ERR, 'Receiver correlation')
         max_err = np.max(np.abs(est_tx_cov - tx_corr_mat))
-        self.assertLessEqual(max_err, TestTDL.MAX_ERR, f'Transmitter correlation')
+        self.assertLessEqual(max_err, TestTDL.MAX_ERR, 'Transmitter correlation')
 
     # No need to test on evey channel model for spatial correlation
     def test_spatial_correlation_joint_rx_tx(self):
@@ -416,7 +412,7 @@ class TestTDL(unittest.TestCase):
         est_spatial_cov /= num_it
 
         # Test
-        spatial_corr_mat = np.eye(num_rx_ant*num_rx_ant)
+        spatial_corr_mat = np.eye(num_rx_ant**2)
         max_err = np.max(np.abs(est_spatial_cov - spatial_corr_mat))
         self.assertLessEqual(max_err, TestTDL.MAX_ERR)
 
@@ -466,9 +462,9 @@ class TestTDL(unittest.TestCase):
 
         # Test
         max_err = np.max(np.abs(est_rx_cov - rx_corr_mat))
-        self.assertLessEqual(max_err, TestTDL.MAX_ERR, f'Receiver correlation')
+        self.assertLessEqual(max_err, TestTDL.MAX_ERR, 'Receiver correlation')
         max_err = np.max(np.abs(est_tx_cov - tx_corr_mat))
-        self.assertLessEqual(max_err, TestTDL.MAX_ERR, f'Transmitter correlation')
+        self.assertLessEqual(max_err, TestTDL.MAX_ERR, 'Transmitter correlation')
 
     # No need to test on evey channel model for spatial correlation
     def test_tx_corr_only(self):
@@ -516,9 +512,9 @@ class TestTDL(unittest.TestCase):
 
         # Test
         max_err = np.max(np.abs(est_rx_cov - rx_corr_mat))
-        self.assertLessEqual(max_err, TestTDL.MAX_ERR, f'Receiver correlation')
+        self.assertLessEqual(max_err, TestTDL.MAX_ERR, 'Receiver correlation')
         max_err = np.max(np.abs(est_tx_cov - tx_corr_mat))
-        self.assertLessEqual(max_err, TestTDL.MAX_ERR, f'Transmitter correlation')
+        self.assertLessEqual(max_err, TestTDL.MAX_ERR, 'Transmitter correlation')
 
     # No need to test on evey channel model for spatial correlation
     def test_spatial_correlation_all_three_inputs(self):

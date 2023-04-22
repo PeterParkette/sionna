@@ -74,7 +74,7 @@ class Camera(OrientedObject):
     @position.setter
     def position(self, new_position):
         new_position = np.array(new_position)
-        if not (new_position.ndim == 1 and new_position.shape[0] == 3):
+        if new_position.ndim != 1 or new_position.shape[0] != 3:
             msg = "Position must be shaped as [x,y,z] (rank=1 and shape=[3])"
             raise ValueError(msg)
         # Update transform
@@ -94,7 +94,7 @@ class Camera(OrientedObject):
     @orientation.setter
     def orientation(self, new_orientation):
         new_orientation = np.array(new_orientation)
-        if not (new_orientation.ndim == 1 and new_orientation.shape[0] == 3):
+        if new_orientation.ndim != 1 or new_orientation.shape[0] != 3:
             msg = "Orientation must be shaped as [a,b,c] (rank=1 and shape=[3])"
             raise ValueError(msg)
 
@@ -131,7 +131,7 @@ class Camera(OrientedObject):
         if isinstance(target, str):
             if self.scene is None:
                 msg = f"Cannot look for radio device '{target}' as the camera"\
-                       " is not part of the scene"
+                           " is not part of the scene"
                 raise ValueError(msg)
             item = self.scene.get(target)
             if not isinstance(item, OrientedObject):
@@ -141,7 +141,7 @@ class Camera(OrientedObject):
                 target = item.position.numpy()
         else:
             target = np.array(target)
-            if not ( (target.ndim == 1) and (target.shape[0] == 3) ):
+            if target.ndim != 1 or target.shape[0] != 3:
                 raise ValueError("`x` must be a three-element vector)")
 
         # If the position and the target are on a line that is parallel to z,
@@ -217,5 +217,4 @@ class Camera(OrientedObject):
         to_world = to_world.matrix.numpy()
         if to_world.ndim == 3:
             to_world = to_world[0]
-        position = to_world[:3,3]
-        return position
+        return to_world[:3,3]

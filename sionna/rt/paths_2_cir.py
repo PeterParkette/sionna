@@ -451,39 +451,36 @@ class Paths2CIR(Layer):
         # of the input
         if mat_t.rank == 6:
             self._synthetic_array = True
-            max_num_paths = mat_t[3]
-            expected_in_shape = [num_rx, num_tx, max_num_paths]
+            expected_in_shape = [num_rx, num_tx, mat_t[3]]
             expected_rank = 4
             using = "using"
         elif mat_t.rank == 8:
             self._synthetic_array = False
-            max_num_paths = mat_t[5]
-            expected_in_shape = [num_rx, rx_array_size, num_tx, tx_array_size,
-                                    max_num_paths]
+            expected_in_shape = [num_rx, rx_array_size, num_tx, tx_array_size, mat_t[5]]
             expected_rank = 6
             using = "not using"
         else:
             msg = "Rank of `mat_t` must be either 6 when using synthetic"\
-                  " arrays or 8 when not using synthetic arrays"
+                      " arrays or 8 when not using synthetic arrays"
             raise ValueError(msg)
 
         # Check the rank of input tensors (except `mat_t`)
-        if not all(v.rank == expected_rank for v in input_shape[1:]):
+        if any(v.rank != expected_rank for v in input_shape[1:]):
             msg  = f"Rank of all inputs except `mat_t` must be {expected_rank}"\
-                    f" when {using} synthetic arrays"
+                        f" when {using} synthetic arrays"
             raise ValueError(msg)
 
         # Check that the inner dimensions of the inputs are as expected
-        if not all(v[1:] == expected_in_shape for v in input_shape[1:]):
+        if any(v[1:] != expected_in_shape for v in input_shape[1:]):
             msg  = f"Inner shape of all inputs except `mat_t` must be"\
-                   f" {expected_in_shape} when {using} synthetic arrays"
+                       f" {expected_in_shape} when {using} synthetic arrays"
             raise ValueError(msg)
 
         # Check the shape of `mat_t`
         expected_in_shape += [2,2]
-        if not mat_t[1:] == expected_in_shape:
+        if mat_t[1:] != expected_in_shape:
             msg  = f"Inner shape of `mat_t` must be"\
-                   f" {expected_in_shape} when {using} synthetic arrays"
+                       f" {expected_in_shape} when {using} synthetic arrays"
             raise ValueError(msg)
 
     def call(self, inputs):

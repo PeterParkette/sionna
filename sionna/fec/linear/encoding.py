@@ -74,22 +74,18 @@ class LinearEncoder(Layer):
         # tf.int8 currently not supported by tf.matmult
         assert (dtype in
                (tf.float16, tf.float32, tf.float64, tf.int32, tf.int64)), \
-               "Unsupported dtype."
+                   "Unsupported dtype."
 
         # check input values for consistency
         assert isinstance(is_pcm, bool), \
-                                    'is_parity_check must be bool.'
+                                        'is_parity_check must be bool.'
 
         # verify that enc_mat is binary
         assert ((enc_mat==0) | (enc_mat==1)).all(), "enc_mat is not binary."
         assert (len(enc_mat.shape)==2), "enc_mat must be 2-D array."
 
         # in case parity-check matrix is provided, convert to generator matrix
-        if is_pcm:
-            self._gm = pcm2gm(enc_mat, verify_results=True)
-        else:
-            self._gm = enc_mat
-
+        self._gm = pcm2gm(enc_mat, verify_results=True) if is_pcm else enc_mat
         self._k = self._gm.shape[0]
         self._n = self._gm.shape[1]
         self._coderate = self._k / self._n
@@ -268,5 +264,4 @@ class AllZeroEncoder(Layer):
         output_shape = tf.concat([tf.shape(inputs)[:-1],
                                   tf.constant(self._n, shape=[1])],
                                   0)
-        c = tf.zeros(output_shape, dtype=super().dtype)
-        return c
+        return tf.zeros(output_shape, dtype=super().dtype)

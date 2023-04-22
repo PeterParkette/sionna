@@ -42,8 +42,7 @@ def polynomial_selector(constraint_length):
             5: ('10011','11011'), # (23, 33)
             6: ('111101', '101011'), # (75, 53)
     }
-    gen_poly = gen_poly_dict[constraint_length]
-    return gen_poly
+    return gen_poly_dict[constraint_length]
 
 
 def puncture_pattern(turbo_coderate, conv_coderate):
@@ -69,9 +68,7 @@ def puncture_pattern(turbo_coderate, conv_coderate):
         pattern = [[1, 1, 0], [1, 0, 1]]
     elif turbo_coderate == 1/3:
         pattern = [[1, 1, 1]]
-    turbo_punct_pattern = tf.convert_to_tensor(
-        np.asarray(pattern), dtype=bool)
-    return turbo_punct_pattern
+    return tf.convert_to_tensor(np.asarray(pattern), dtype=bool)
 
 
 class TurboTermination(object):
@@ -135,8 +132,7 @@ class TurboTermination(object):
             symbol equals ``num_bitstreams`` bits.
         """
         total_term_bits = self.conv_n * self. num_conv_encs * self.mu_
-        turbo_term_syms = math.ceil(total_term_bits/self.num_bitstreams)
-        return turbo_term_syms
+        return math.ceil(total_term_bits/self.num_bitstreams)
 
     def termbits_conv2turbo(self, term_bits1, term_bits2):
         # pylint: disable=line-too-long

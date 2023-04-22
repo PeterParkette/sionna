@@ -31,10 +31,7 @@ class Config(ABC):
             If `True`, a deep copy will be returned.
             Defaults to `True`.
         """
-        if deep:
-            return copy.deepcopy(self)
-        else:
-            return copy.copy(self)
+        return copy.deepcopy(self) if deep else copy.copy(self)
 
     def check_config(self):
         pass

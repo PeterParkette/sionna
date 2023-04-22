@@ -110,17 +110,13 @@ class LayerMapper(Layer):
     def num_layers0(self):
         r"""Number of layers for first codeword (only relevant for
         `num_codewords` =2)"""
-        if self._num_codewords==1:
-            return self._num_layers
-        return self._num_layers0
+        return self._num_layers if self._num_codewords==1 else self._num_layers0
 
     @property
     def num_layers1(self):
         r"""Number of layers for second codeword (only relevant for
         `num_codewords` =2)"""
-        if self._num_codewords==1:
-            return 0 # no second stream
-        return self._num_layers1
+        return 0 if self._num_codewords==1 else self._num_layers1
 
     def build(self, input_shapes):
         """Test input shapes for consistency."""
@@ -267,15 +263,13 @@ class LayerDemapper(Layer):
         x = tf.experimental.numpy.swapaxes(x, axis1=-2, axis2=-3)
 
         if self._mapper.num_codewords==1:
-            y = flatten_last_dims(x, num_dims=3)
-            return y
-        else:
-            # multiplex into two codewords/streams
-            # only relevant for PDSCH with dual codeword transmission
+            return flatten_last_dims(x, num_dims=3)
+        # multiplex into two codewords/streams
+        # only relevant for PDSCH with dual codeword transmission
 
-            y0 = flatten_last_dims(x[...,:self._mapper.num_layers0,:],
-                                   num_dims=3)
-            y1 = flatten_last_dims(x[...,self._mapper.num_layers0:,:],
-                                   num_dims=3)
-            return [y0, y1]
+        y0 = flatten_last_dims(x[...,:self._mapper.num_layers0,:],
+                               num_dims=3)
+        y1 = flatten_last_dims(x[...,self._mapper.num_layers0:,:],
+                               num_dims=3)
+        return [y0, y1]
 

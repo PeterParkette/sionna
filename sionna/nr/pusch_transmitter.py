@@ -231,20 +231,9 @@ class PUSCHTransmitter(Layer):
         x_grid = self._resource_grid_mapper(x_layer)
 
         # (Optionally) apply PUSCH precoding
-        if self._precoding=="codebook":
-            x_pre = self._precoder(x_grid)
-        else:
-            x_pre = x_grid
-
+        x_pre = self._precoder(x_grid) if self._precoding=="codebook" else x_grid
         # (Optionally) apply OFDM modulation
-        if self._output_domain=="time":
-            x = self._ofdm_modulator(x_pre)
-        else:
-            x = x_pre
-
-        if self._return_bits:
-            return x, b
-        else:
-            return x
+        x = self._ofdm_modulator(x_pre) if self._output_domain=="time" else x_pre
+        return (x, b) if self._return_bits else x
 
 

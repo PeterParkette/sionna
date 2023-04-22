@@ -171,15 +171,16 @@ class ViterbiDecoder(Layer):
     @property
     def coderate(self):
         """Rate of the code used in the encoder"""
-        if self.terminate and self._n is None:
-            print("Note that, due to termination, the true coderate is lower "\
-                  "than the returned design rate. "\
-                  "The exact true rate is dependent on the value of n and "\
-                  "hence cannot be computed before the first call().")
-            self._coderate = self._coderate_desired
-        elif self.terminate and self._n is not None:
-            k = self._coderate_desired*self._n - self._mu
-            self._coderate = k/self._n
+        if self.terminate:
+            if self._n is None:
+                print("Note that, due to termination, the true coderate is lower "\
+                          "than the returned design rate. "\
+                          "The exact true rate is dependent on the value of n and "\
+                          "hence cannot be computed before the first call().")
+                self._coderate = self._coderate_desired
+            else:
+                k = self._coderate_desired*self._n - self._mu
+                self._coderate = k/self._n
         return self._coderate
 
     @property
@@ -417,10 +418,7 @@ class ViterbiDecoder(Layer):
         output_shape = inputs.get_shape().as_list()
         y_resh = tf.reshape(inputs, [-1, self._n])
         output_shape[0] = -1
-        if self._return_info_bits:
-            output_shape[-1] = self._k # assign k to the last dimension
-        else:
-            output_shape[-1] = self._n
+        output_shape[-1] = self._k if self._return_info_bits else self._n
         # Branch metrics matrix for a given y
         bm_mat = self._bmcalc(y_resh)
 
@@ -445,9 +443,7 @@ class ViterbiDecoder(Layer):
             output = tf.cast(msghat, self.output_dtype)
         else:
             output = tf.cast(cwhat, self.output_dtype)
-        output_reshaped = tf.reshape(output, output_shape)
-
-        return output_reshaped
+        return tf.reshape(output, output_shape)
 
 
 class BCJRDecoder(Layer):
@@ -620,15 +616,16 @@ class BCJRDecoder(Layer):
     @property
     def coderate(self):
         """Rate of the code used in the encoder"""
-        if self.terminate and self._n is None:
-            print("Note that, due to termination, the true coderate is lower "\
-                  "than the returned design rate. "\
-                  "The exact true rate is dependent on the value of n and "\
-                  "hence cannot be computed before the first call().")
-            self._coderate = self._coderate_desired
-        elif self.terminate and self._n is not None:
-            k = self._coderate_desired*self._n - self._mu
-            self._coderate = k/self._n
+        if self.terminate:
+            if self._n is None:
+                print("Note that, due to termination, the true coderate is lower "\
+                          "than the returned design rate. "\
+                          "The exact true rate is dependent on the value of n and "\
+                          "hence cannot be computed before the first call().")
+                self._coderate = self._coderate_desired
+            else:
+                k = self._coderate_desired*self._n - self._mu
+                self._coderate = k/self._n
         return self._coderate
 
     @property
@@ -709,12 +706,11 @@ class BCJRDecoder(Layer):
         half_llr_sign = tf.reshape(0.5 * llr_sign,
             (-1, self._no, self._num_syms, self._conv_n))
 
-        if self._algorithm in ['log', 'maxlog']:
-            bm = tf.math.reduce_sum(half_llr_sign, axis=-1)
-        else:
-            bm = tf.math.exp(tf.math.reduce_sum(half_llr_sign, axis=-1))
-
-        return bm
+        return (
+            tf.math.reduce_sum(half_llr_sign, axis=-1)
+            if self._algorithm in ['log', 'maxlog']
+            else tf.math.exp(tf.math.reduce_sum(half_llr_sign, axis=-1))
+        )
 
     def _initialize(self, llr_ch):
         if self._algorithm in ['log', 'maxlog']:
@@ -845,7 +841,21 @@ class BCJRDecoder(Layer):
                 beta_t = tf.math.reduce_max(beta_gam_prod, axis=-1)
 
             alph_t = alpha_ta.read(t)
-            if self._algorithm not in ['log', 'maxlog']:
+            if self._algorithm in ['log', 'maxlog']:
+                llr_op_t0 = alph_t + gamma_byfromst[...,0] + beta_bytonode[...,0]
+                llr_op_t1 = alph_t + gamma_byfromst[...,1] + beta_bytonode[...,1]
+                llr_op_t = (
+                    tf.math.subtract(
+                        tf.math.reduce_logsumexp(llr_op_t0, axis=-1),
+                        tf.math.reduce_logsumexp(llr_op_t1, axis=-1),
+                    )
+                    if self._algorithm == 'log'
+                    else tf.math.subtract(
+                        tf.math.reduce_max(llr_op_t0, axis=-1),
+                        tf.math.reduce_max(llr_op_t1, axis=-1),
+                    )
+                )
+            else:
                 llr_op_t0 = tf.math.multiply(
                                 tf.math.multiply(alph_t, gamma_byfromst[...,0]),
                                             beta_bytonode[...,0])
@@ -854,23 +864,10 @@ class BCJRDecoder(Layer):
                                             beta_bytonode[...,1])
                 llr_op_t = tf.math.log(tf.divide(tf.reduce_sum(llr_op_t0, axis=-1),
                                                 tf.reduce_sum(llr_op_t1,axis=-1)))
-            else:
-                llr_op_t0 = alph_t + gamma_byfromst[...,0] + beta_bytonode[...,0]
-                llr_op_t1 = alph_t + gamma_byfromst[...,1] + beta_bytonode[...,1]
-                if self._algorithm == 'log':
-                    llr_op_t = tf.math.subtract(
-                        tf.math.reduce_logsumexp(llr_op_t0, axis=-1),
-                        tf.math.reduce_logsumexp(llr_op_t1, axis=-1))
-                else:
-                    llr_op_t = tf.math.subtract(
-                        tf.math.reduce_max(llr_op_t0, axis=-1),
-                        tf.math.reduce_max(llr_op_t1, axis=-1))
-
             llr_op_ta = llr_op_ta.write(t, llr_op_t)
             beta_next = beta_t
 
-        llr_op = tf.transpose(llr_op_ta.stack())
-        return llr_op
+        return tf.transpose(llr_op_ta.stack())
 
     #########################
     # Keras layer functions
@@ -942,6 +939,4 @@ class BCJRDecoder(Layer):
         if self._hard_out: # hard decide decoder output if required
             msghat = tf.less(0.0, msghat)
         msghat = tf.cast(msghat, self._output_dtype)
-        msghat_reshaped = tf.reshape(msghat, output_shape)
-
-        return msghat_reshaped
+        return tf.reshape(msghat, output_shape)

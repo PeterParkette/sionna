@@ -167,12 +167,12 @@ class PilotPattern():
         pilots = self.pilots.numpy()
 
         if tx_ind is None:
-            tx_ind = range(0, self.num_tx)
+            tx_ind = range(self.num_tx)
         elif not isinstance(tx_ind, list):
             tx_ind = [tx_ind]
 
         if stream_ind is None:
-            stream_ind = range(0, self.num_streams_per_tx)
+            stream_ind = range(self.num_streams_per_tx)
         elif not isinstance(stream_ind, list):
             stream_ind = [stream_ind]
 
@@ -186,7 +186,7 @@ class PilotPattern():
                 plt.title(f"TX {i} - Stream {j}")
                 plt.xlabel("OFDM Symbol")
                 plt.ylabel("Subcarrier Index")
-                plt.xticks(range(0, q.shape[1]))
+                plt.xticks(range(q.shape[1]))
                 cmap = plt.cm.tab20c
                 b = np.arange(0, 4)
                 norm = colors.BoundaryNorm(b, cmap.N)

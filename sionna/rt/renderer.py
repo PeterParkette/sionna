@@ -92,12 +92,11 @@ def render(scene, camera, paths, show_paths, show_devices, num_samples,
     img1 = mi.render(s1, sensor=sensor, integrator=integrator, spp=num_samples)
     img1 = img1.numpy()
 
-    needs_compositing = (
+    if needs_compositing := (
         (show_paths and paths is not None)
         or (coverage_map is not None)
         or show_devices
-    )
-    if needs_compositing:
+    ):
         if coverage_map is not None:
             coverage_map = _coverage_map_to_textured_rectangle(
                 coverage_map, tx=cm_tx, db_scale=cm_db_scale,
@@ -209,12 +208,7 @@ def make_render_sensor(scene, camera, resolution, fov):
         props['near_clip'] = sensor_params['near_clip']
         props['far_clip'] = sensor_params['far_clip']
 
-    elif isinstance(camera, str):
-        # Do nothing as this was already handled. This is to avoid wrongly
-        # raising an exception
-        pass
-
-    else:
+    elif not isinstance(camera, str):
         raise ValueError(f'Unsupported camera type: {type(camera)}')
 
     if fov is not None:
@@ -275,7 +269,7 @@ def results_to_mitsuba_scene(scene, paths, show_paths, show_devices,
         for source, color in ((tx_positions, [0.160, 0.502, 0.725]),
                               (rx_positions, [0.153, 0.682, 0.375])):
             for k, p in source.items():
-                key = 'rd-' + k
+                key = f'rd-{k}'
                 assert key not in objects
                 objects[key] = {
                     'type': 'sphere',

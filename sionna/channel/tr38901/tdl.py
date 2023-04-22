@@ -386,7 +386,7 @@ class TDL(ChannelModel):
 
         # Time steps
         sample_times = tf.range(num_time_steps, dtype=self._real_dtype)\
-            /sampling_frequency
+                /sampling_frequency
         sample_times = tf.expand_dims(insert_dims(sample_times, 6, 0), -1)
 
         # Generate random maximum Doppler shifts for each sample
@@ -441,7 +441,7 @@ class TDL(ChannelModel):
         normalization_factor = 1./tf.sqrt(  tf.cast(self._num_sinusoids,
                                             self._real_dtype))
         h = tf.complex(normalization_factor, tf.constant(0., self._real_dtype))\
-            *tf.reduce_sum(h, axis=-1)
+                *tf.reduce_sum(h, axis=-1)
 
         # Scaling by average power
         mean_powers = tf.expand_dims(insert_dims(self._mean_powers, 5, 0), -1)
@@ -467,7 +467,7 @@ class TDL(ChannelModel):
             doppler = tf.squeeze(doppler, axis=-1)
             sample_times = tf.squeeze(sample_times, axis=-1)
             arg_spec = doppler*sample_times*tf.cos(self._los_angle_of_arrival)\
-                    + phi_0
+                        + phi_0
             h_spec = tf.complex(tf.cos(arg_spec), tf.sin(arg_spec))
 
             # Update the first tap with the specular component
@@ -494,15 +494,16 @@ class TDL(ChannelModel):
             h = split_dim(h, [self._num_rx_ant, self._num_tx_ant],
                             tf.rank(h)-1)  # [..., num_rx_ant, num_tx_ant]
             h = tf.transpose(h, [0,1,5,2,6,3,4])
-        else:
-            if ( (self._rx_corr_mat_sqrt is not None)
-                    or (self._tx_corr_mat_sqrt is not None) ):
-                h = tf.transpose(h, [0,1,3,5,6,2,4])
-                if self._rx_corr_mat_sqrt is not None:
-                    h = tf.matmul(self._rx_corr_mat_sqrt, h)
-                if self._tx_corr_mat_sqrt is not None:
-                    h = tf.matmul(h, self._tx_corr_mat_sqrt)
-                h = tf.transpose(h, [0,1,5,2,6,3,4])
+        elif (
+            self._rx_corr_mat_sqrt is not None
+            or self._tx_corr_mat_sqrt is not None
+        ):
+            h = tf.transpose(h, [0,1,3,5,6,2,4])
+            if self._rx_corr_mat_sqrt is not None:
+                h = tf.matmul(self._rx_corr_mat_sqrt, h)
+            if self._tx_corr_mat_sqrt is not None:
+                h = tf.matmul(h, self._tx_corr_mat_sqrt)
+            h = tf.transpose(h, [0,1,5,2,6,3,4])
 
         # Stop gadients to avoid useless backpropagation
         h = tf.stop_gradient(h)
@@ -596,10 +597,8 @@ class TDL(ChannelModel):
         if self._los:
             norm_factor = tf.reduce_sum(mean_powers) + self._los_power
             self._los_power = self._los_power / norm_factor
-            mean_powers = mean_powers / norm_factor
         else:
             norm_factor = tf.reduce_sum(mean_powers)
-            mean_powers = mean_powers / norm_factor
-
+        mean_powers = mean_powers / norm_factor
         self._delays = delays
         self._mean_powers = mean_powers

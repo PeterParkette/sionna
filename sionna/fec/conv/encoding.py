@@ -163,14 +163,14 @@ class ConvEncoder(Layer):
     @property
     def coderate(self):
         """Rate of the code used in the encoder"""
-        if self.terminate and self._k is None:
-            print("Note that, due to termination, the true coderate is lower "\
-                  "than the returned design rate. "\
-                  "The exact true rate is dependent on the value of k and "\
-                  "hence cannot be computed before the first call().")
-        elif self.terminate and self._k is not None:
-            term_factor = self._k/(self._k + self._mu)
-            self._coderate = self._coderate_desired*term_factor
+        if self.terminate:
+            if self._k is None:
+                print("Note that, due to termination, the true coderate is lower "\
+                          "than the returned design rate. "\
+                          "The exact true rate is dependent on the value of k and "\
+                          "hence cannot be computed before the first call().")
+            else:
+                self._coderate = self._coderate_desired * (self._k/(self._k + self._mu))
         return self._coderate
 
     @property
@@ -241,7 +241,7 @@ class ConvEncoder(Layer):
         prev_st = tf.zeros([tf.shape(msg_reshaped)[0]], tf.int32)
         ta = tf.TensorArray(tf.int32, size=self.num_syms, dynamic_size=False)
 
-        idx_offset = range(0, self._conv_k)
+        idx_offset = range(self._conv_k)
         for idx in tf.range(0, self._k, self._conv_k):
             msg_bits_idx = tf.gather(msg_reshaped,
                                      idx + idx_offset,
@@ -288,7 +288,5 @@ class ConvEncoder(Layer):
             cw = tf.concat([cw, term_bits], axis=-1)
 
         cw = tf.cast(cw, self.output_dtype)
-        cw_reshaped = tf.reshape(cw, output_shape)
-
-        return cw_reshaped
+        return tf.reshape(cw, output_shape)
 
